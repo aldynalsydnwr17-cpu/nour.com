@@ -389,6 +389,12 @@
         <label><input type="checkbox" id="roleOpt"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5c.5 3 1.5 4 4.5 4.5-3 .5-4 1.5-4.5 4.5-.5-3-1.5-4-4.5-4.5 3-.5 4-1.5 4.5-4.5z"/></svg></span><span class="tx">شكل يناسب رولز ديسكورد<small>معالجة ذكية للحواف الأربعة</small></span><span class="sw"></span></label>
       </div>
 
+      <div id="sensBox" style="display:none">
+        <p class="lbl">حساسية إزالة الخلفية</p>
+        <div class="rng"><span class="hint" style="margin:0">أقل</span><input type="range" id="sens" min="8" max="90" value="34" aria-label="حساسية إزالة الخلفية"><span class="hint" style="margin:0">أكتر</span><output id="sensOut">34</output></div>
+        <p class="hint" style="margin-top:6px">لو فضل جزء من الخلفية زودها، ولو الخلفية أكلت جزء من الموضوع قلّلها.</p>
+      </div>
+
       <div class="compare" id="previewRow">
         <div class="stage" id="stage">
           <canvas id="afterCanvas"></canvas>
@@ -429,11 +435,25 @@
 
       <p class="lbl">مقاس البانر</p>
       <div class="chips" id="bSizes">
-        <button class="chip" type="button" data-w="960" data-h="540" aria-pressed="true">بانر سيرفر ديسكورد<small>960×540</small></button>
-        <button class="chip" type="button" data-w="600" data-h="240" aria-pressed="false">بانر بروفايل ديسكورد<small>600×240</small></button>
-        <button class="chip" type="button" data-w="1500" data-h="500" aria-pressed="false">غلاف تويتر / X<small>1500×500</small></button>
+        <button class="chip" type="button" data-w="960" data-h="540" aria-pressed="true">بانر سيرفر ديسكورد<small dir="ltr">960×540</small></button>
+        <button class="chip" type="button" data-w="600" data-h="240" aria-pressed="false">بانر بروفايل ديسكورد<small dir="ltr">600×240</small></button>
+        <button class="chip" type="button" data-w="1500" data-h="500" aria-pressed="false">غلاف تويتر / X<small dir="ltr">1500×500</small></button>
       </div>
 
+      <p class="lbl">طريقة العرض</p>
+      <div class="chips" id="bFit">
+        <button class="chip" type="button" data-fit="cover" aria-pressed="true">تملا البانر كله<small>الصورة تتقص عشان تغطي البانر</small></button>
+        <button class="chip" type="button" data-fit="contain" aria-pressed="false">الصورة كاملة<small>وحواليها خلفية</small></button>
+      </div>
+
+      <div id="bPosBox">
+        <p class="lbl">الجزء اللي يظهر من الصورة</p>
+        <div class="rng"><span class="hint" style="margin:0">فوق</span><input type="range" id="bPos" min="0" max="100" value="50" aria-label="الجزء الظاهر من الصورة"><span class="hint" style="margin:0">تحت</span></div>
+        <p class="lbl">تكبير</p>
+        <div class="rng"><input type="range" id="bZoom" min="100" max="250" value="100"><output id="bZoomOut">100%</output></div>
+      </div>
+
+      <div id="bBgBox" style="display:none">
       <p class="lbl">الخلفية</p>
       <div class="chips" id="bBg">
         <button class="chip" type="button" data-bg="blur" aria-pressed="true">غبشة من الصورة</button>
@@ -444,6 +464,7 @@
 
       <p class="lbl">حجم الصورة جوه البانر</p>
       <div class="rng"><input type="range" id="bScale" min="40" max="100" value="82"><output id="bScaleOut">82%</output></div>
+      </div>
 
       <div class="bwrap" id="bWrap"><canvas id="bCanvas"></canvas></div>
       <div class="dims" id="bDims"></div>
@@ -519,6 +540,7 @@ roleOpt.addEventListener('change', () => {
   if (roleOpt.checked) { squarePrev = squareOpt.checked; squareOpt.checked = true; }
   else { squareOpt.checked = squarePrev; }
   squareOpt.disabled = roleOpt.checked;
+  document.getElementById('sensBox').style.display = roleOpt.checked ? 'block' : 'none';
   if (beforeImg.getAttribute('src')) process(beforeImg.src);
 });
 resetBtn.addEventListener('click', () => {
@@ -691,7 +713,7 @@ function removeBackground(imgData, w, h) {
   const dist = (i) => Math.hypot(d[i] - bg[0], d[i + 1] - bg[1], d[i + 2] - bg[2]);
   for (const c of cs) if (Math.hypot(c[0] - bg[0], c[1] - bg[1], c[2] - bg[2]) > 30) return null;
 
-  const TOL = 34, SOFT = 22;
+  const TOL = +document.getElementById('sens').value, SOFT = 22;
   const seen = new Uint8Array(w * h);
   const stack = [];
   const push = (x, y) => {
@@ -797,6 +819,15 @@ downloadBtn.addEventListener('click', () => {
 });
 
 
+// ===== حساسية إزالة الخلفية =====
+const sens = document.getElementById('sens');
+let sensTimer;
+sens.addEventListener('input', () => {
+  document.getElementById('sensOut').textContent = sens.value;
+  clearTimeout(sensTimer);
+  sensTimer = setTimeout(() => { if (beforeImg.getAttribute('src')) process(beforeImg.src); }, 120);
+});
+
 // ===== مقارنة قبل وبعد =====
 const cmp = document.getElementById('cmp');
 function setCmp(v) {
@@ -856,31 +887,39 @@ const bScale = document.getElementById('bScale'), bScaleOut = document.getElemen
 const bColor = document.getElementById('bColor');
 let bImg = null, bW = 960, bH = 540, bBg = 'blur', bUrl = null;
 
+let bFit = 'cover';
+const bPos = document.getElementById('bPos'), bZoom = document.getElementById('bZoom'), bZoomOut = document.getElementById('bZoomOut');
 function drawBanner() {
   if (!bImg) return;
   bCanvas.width = bW; bCanvas.height = bH;
   const ctx = bCanvas.getContext('2d');
   ctx.clearRect(0, 0, bW, bH);
-  const iw = bImg.naturalWidth, ih = bImg.naturalHeight;
-  if (bBg === 'blur') {
-    // تغبيش بسيط: نصغّر الصورة جدًا وبعدين نكبّرها ونغطي بيها البانر كله
-    const t = document.createElement('canvas'); t.width = 24; t.height = Math.max(2, Math.round(24 * bH / bW));
-    const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high';
-    const k = Math.max(t.width / iw, t.height / ih);
-    tx.drawImage(bImg, (t.width - iw * k) / 2, (t.height - ih * k) / 2, iw * k, ih * k);
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(t, 0, 0, bW, bH);
-    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(0, 0, bW, bH);
-  } else if (bBg === 'color') {
-    ctx.fillStyle = bColor.value; ctx.fillRect(0, 0, bW, bH);
-  }
-  const k = Math.min(bW / iw, bH / ih) * (bScale.value / 100);
-  const w = iw * k, h = ih * k;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(bImg, (bW - w) / 2, (bH - h) / 2, w, h);
+  const iw = bImg.naturalWidth, ih = bImg.naturalHeight;
+  if (bFit === 'cover') {
+    // الصورة تغطي البانر كله: نكبّرها لحد ما تملا العرض والطول، ونقص الزيادة حسب الموضع
+    const k = Math.max(bW / iw, bH / ih) * (bZoom.value / 100);
+    const w = iw * k, h = ih * k;
+    ctx.drawImage(bImg, -(w - bW) * 0.5, -(h - bH) * (bPos.value / 100), w, h);
+    // ملحوظة: القص الأفقي بيتوزع على الجانبين، والرأسي حسب شريط الموضع
+  } else {
+    if (bBg === 'blur') {
+      const t = document.createElement('canvas'); t.width = 24; t.height = Math.max(2, Math.round(24 * bH / bW));
+      const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high';
+      const kk = Math.max(t.width / iw, t.height / ih);
+      tx.drawImage(bImg, (t.width - iw * kk) / 2, (t.height - ih * kk) / 2, iw * kk, ih * kk);
+      ctx.drawImage(t, 0, 0, bW, bH);
+      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(0, 0, bW, bH);
+    } else if (bBg === 'color') {
+      ctx.fillStyle = bColor.value; ctx.fillRect(0, 0, bW, bH);
+    }
+    const k = Math.min(bW / iw, bH / ih) * (bScale.value / 100);
+    const w = iw * k, h = ih * k;
+    ctx.drawImage(bImg, (bW - w) / 2, (bH - h) / 2, w, h);
+  }
   bWrap.style.display = 'flex';
-  bDims.textContent = `مقاس البانر: ${bW}×${bH}`;
-  bCanvas.toBlob(b => { if (bUrl) URL.revokeObjectURL(bUrl); bUrl = URL.createObjectURL(b); bDownload.disabled = false; }, 'image/png');
+  bDims.textContent = 'مقاس البانر: \u2066' + bW + '×' + bH + '\u2069';
+  bCanvas.toBlob(bl => { if (bUrl) URL.revokeObjectURL(bUrl); bUrl = URL.createObjectURL(bl); bDownload.disabled = false; }, 'image/png');
 }
 function loadBanner(file) {
   if (!file || !file.type.startsWith('image/')) return;
@@ -902,6 +941,13 @@ function chipGroup(id, fn) {
   }));
 }
 chipGroup('bSizes', c => { bW = +c.dataset.w; bH = +c.dataset.h; });
+chipGroup('bFit', c => {
+  bFit = c.dataset.fit;
+  document.getElementById('bPosBox').style.display = bFit === 'cover' ? '' : 'none';
+  document.getElementById('bBgBox').style.display = bFit === 'cover' ? 'none' : '';
+});
+bPos.addEventListener('input', drawBanner);
+bZoom.addEventListener('input', () => { bZoomOut.textContent = bZoom.value + '%'; drawBanner(); });
 chipGroup('bBg', c => { bBg = c.dataset.bg; });
 bColor.addEventListener('input', () => {
   bBg = 'color';
