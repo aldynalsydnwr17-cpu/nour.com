@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صنع نور الدين</title>
 <meta name="description" content="أدوات مجانية لتجهيز الصور: تقريب الحواف وتجهيز أيقونات رولز ديسكورد، بتشتغل جوه متصفحك من غير ما تترفع صورتك.">
-<link rel="icon" type="image/png" href="site_icon.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox=%220 0 64 64%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%238b80ff%22/%3E%3Cstop offset=%221%22 stop-color=%22%234a3ce0%22/%3E%3C/linearGradient%3E%3CradialGradient id=%22r%22 cx=%22.3%22 cy=%22.2%22 r=%22.8%22%3E%3Cstop offset=%220%22 stop-color=%22%23fff%22 stop-opacity=%22.35%22/%3E%3Cstop offset=%221%22 stop-color=%22%23fff%22 stop-opacity=%220%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width=%2264%22 height=%2264%22 rx=%2218%22 fill=%22url%28%23g%29%22/%3E%3Crect width=%2264%22 height=%2264%22 rx=%2218%22 fill=%22url%28%23r%29%22/%3E%3Cg fill=%22none%22 stroke=%22%23fff%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M17 26V19a2 2 0 0 1 2-2h7%22/%3E%3Cpath d=%22M38 17h7a2 2 0 0 1 2 2v7%22/%3E%3Cpath d=%22M47 38v7a2 2 0 0 1-2 2h-7%22/%3E%3Cpath d=%22M26 47h-7a2 2 0 0 1-2-2v-7%22/%3E%3C/g%3E%3Cpath d=%22M32 22c1.2 6.2 3.8 8.8 10 10-6.2 1.2-8.8 3.8-10 10-1.2-6.2-3.8-8.8-10-10 6.2-1.2 8.8-3.8 10-10z%22 fill=%22%23fff%22/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="site_icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a12">
@@ -104,12 +104,23 @@
   #drop span{color:var(--muted);font-size:14px}
   #fileInput{display:none}
   .opts{display:grid;gap:10px;margin-top:18px}
-  .opts label{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;cursor:pointer;
-    background:var(--bg);border:1px solid var(--line);font-size:15px;font-weight:500}
-  .opts label small{display:block;color:var(--muted);font-size:13px;font-weight:400}
-  .opts label.role{border-color:var(--accentLine);background:var(--accentSoft)}
-  input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0}
-  .opts input:disabled + span{opacity:.55}
+  .opts label{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;cursor:pointer;
+    background:var(--bg);border:1px solid var(--line);font-size:15px;font-weight:600;transition:border-color .2s,background .2s}
+  .opts label small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:2px}
+  .opts .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+    background:var(--surface2);border:1px solid var(--line);color:var(--accent)}
+  .opts .ic svg{width:22px;height:22px}
+  .opts .tx{flex:1;min-width:0;line-height:1.5}
+  .opts .sw{position:relative;width:46px;height:26px;border-radius:99px;background:#2b2b44;flex-shrink:0;transition:background .2s}
+  .opts .sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:transform .2s}
+  .opts input{position:absolute;opacity:0;pointer-events:none}
+  .opts input:checked ~ .sw{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .opts input:checked ~ .sw::after{transform:translateX(-20px)}
+  [dir=ltr] .opts input:checked ~ .sw::after{transform:translateX(20px)}
+  .opts label:has(input:checked){border-color:var(--accentLine);background:var(--accentSoft)}
+  .opts input:focus-visible ~ .sw{outline:2px solid var(--accent);outline-offset:3px}
+  .opts label:has(input:disabled){opacity:.6;cursor:default}
   .row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:20px}
   .box{flex:1;min-width:140px;text-align:center}
   .box h3{margin-bottom:10px;color:var(--muted);font-size:14px;font-weight:500}
@@ -173,7 +184,7 @@
 
 <header class="top">
   <div class="brand">
-    <img class="logo" src="site_icon.png" alt="">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b80ff"/><stop offset="1" stop-color="#4a3ce0"/></linearGradient><radialGradient id="r" cx=".3" cy=".2" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="64" height="64" rx="18" fill="url(#g)"/><rect width="64" height="64" rx="18" fill="url(#r)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 26V19a2 2 0 0 1 2-2h7"/><path d="M38 17h7a2 2 0 0 1 2 2v7"/><path d="M47 38v7a2 2 0 0 1-2 2h-7"/><path d="M26 47h-7a2 2 0 0 1-2-2v-7"/></g><path d="M32 22c1.2 6.2 3.8 8.8 10 10-6.2 1.2-8.8 3.8-10 10-1.2-6.2-3.8-8.8-10-10 6.2-1.2 8.8-3.8 10-10z" fill="#fff"/></svg>
     <div><b>نور الدين</b><small>أدوات الصور</small></div>
   </div>
   <button class="menu-btn" id="menuBtn" aria-label="القائمة" aria-expanded="false" aria-controls="drawer">
@@ -244,8 +255,8 @@
       </div>
 
       <div class="opts">
-        <label><input type="checkbox" id="squareOpt"><span>اجعلها مربعة بعد التقريب</span></label>
-        <label class="role"><input type="checkbox" id="roleOpt"><span>شكل يناسب رولز ديسكورد <small>معالجة ذكية للحواف الأربعة</small></span></label>
+        <label><input type="checkbox" id="squareOpt"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 4v16M4 9h16" opacity=".4"/></svg></span><span class="tx">اجعلها مربعة بعد التقريب<small>تخلّي الصورة مربعة بعد قص الحواف</small></span><span class="sw"></span></label>
+        <label><input type="checkbox" id="roleOpt"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5c.5 3 1.5 4 4.5 4.5-3 .5-4 1.5-4.5 4.5-.5-3-1.5-4-4.5-4.5 3-.5 4-1.5 4.5-4.5z"/></svg></span><span class="tx">شكل يناسب رولز ديسكورد<small>معالجة ذكية للحواف الأربعة</small></span><span class="sw"></span></label>
       </div>
 
       <div class="row" id="previewRow" style="display:none">
@@ -346,8 +357,16 @@ function process(src) {
       tctx.drawImage(img, 0, 0);
       const data = tctx.getImageData(0, 0, w, h);
 
-      const hasAlpha = checkHasAlpha(data);
-      const bg = hasAlpha ? null : sampleCorners(data, w, h);
+      let hasAlpha = checkHasAlpha(data);
+      let bg = hasAlpha ? null : sampleCorners(data, w, h);
+      let srcImg = img, bgNote = '';
+
+      // وضع الرولز: لو الصورة ليها خلفية ثابتة نشيلها الأول، ولو مفيش نكمل تظبيط الأبعاد بس
+      if (roleOpt.checked && !hasAlpha) {
+        const cut = removeBackground(data, w, h);
+        if (cut) { srcImg = cut.canvas; data.data.set(cut.data); hasAlpha = true; bg = null; bgNote = '  —  اتشالت الخلفية'; }
+        else bgNote = '  —  مفيش خلفية ثابتة، اتظبطت الأبعاد بس';
+      }
       const box = findBounds(data, w, h, hasAlpha, bg);
 
       let cw = box.maxX - box.minX + 1;
@@ -355,7 +374,7 @@ function process(src) {
       let outCanvas = document.createElement('canvas');
 
       if (roleOpt.checked) {
-        outCanvas = smartRoleFit(img, data, w, h, hasAlpha, bg);
+        outCanvas = smartRoleFit(srcImg, data, w, h, hasAlpha, bg);
       } else if (squareOpt.checked) {
         const trim = 0.02; // نسبة التقريب من الفوق ومن التحت
         const cutY = Math.floor(ch * trim);
@@ -377,7 +396,7 @@ function process(src) {
       afterCanvas.height = outCanvas.height;
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
-      dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}`;
+      dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
       previewRow.style.display = 'flex';
       resetBtn.style.display = 'inline-block';
 
@@ -467,10 +486,61 @@ function smartRoleFit(img, data, w, h, hasAlpha, bg) {
   return out;
 }
 
+// إزالة الخلفية: بتشتغل بس لو أركان الصورة الأربعة لونها واحد تقريبًا (خلفية ثابتة).
+// بتمسح البكسلات المشابهة للون الخلفية والمتصلة بحواف الصورة بس، فالألوان اللي جوه الموضوع بتفضل
+function removeBackground(imgData, w, h) {
+  const d = imgData.data;
+  const px = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+  const cs = [px(0, 0), px(w - 1, 0), px(0, h - 1), px(w - 1, h - 1)];
+  const bg = [0, 1, 2].map(k => (cs[0][k] + cs[1][k] + cs[2][k] + cs[3][k]) / 4);
+  const dist = (i) => Math.hypot(d[i] - bg[0], d[i + 1] - bg[1], d[i + 2] - bg[2]);
+  for (const c of cs) if (Math.hypot(c[0] - bg[0], c[1] - bg[1], c[2] - bg[2]) > 30) return null;
+
+  const TOL = 34, SOFT = 22;
+  const seen = new Uint8Array(w * h);
+  const stack = [];
+  const push = (x, y) => {
+    const p = y * w + x;
+    if (seen[p] || dist(p * 4) > TOL) return;
+    seen[p] = 1; stack.push(p);
+  };
+  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+  let removed = 0;
+  while (stack.length) {
+    const p = stack.pop(); removed++;
+    const x = p % w, y = (p - x) / w;
+    if (x > 0) push(x - 1, y);
+    if (x < w - 1) push(x + 1, y);
+    if (y > 0) push(x, y - 1);
+    if (y < h - 1) push(x, y + 1);
+  }
+  const frac = removed / (w * h);
+  if (frac < 0.02 || frac > 0.97) return null;
+
+  const out = new Uint8ClampedArray(d);
+  for (let p = 0; p < w * h; p++) {
+    const i = p * 4;
+    if (seen[p]) { out[i + 3] = 0; continue; }
+    // حافة ناعمة: البكسل اللي جنب الخلفية وقريب من لونها نخلّي شفافيته جزئية
+    const x = p % w, y = (p - x) / w;
+    const near = (x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (y > 0 && seen[p - w]) || (y < h - 1 && seen[p + w]);
+    if (near) {
+      const t = (dist(i) - TOL) / SOFT;
+      if (t < 1) out[i + 3] = Math.round(255 * Math.max(0.15, t));
+    }
+  }
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').putImageData(new ImageData(out, w, h), 0, 0);
+  return { canvas: cv, data: out };
+}
+
 function checkHasAlpha(data) {
   const d = data.data;
-  for (let i = 3; i < d.length; i += 97) { // عينة سريعة
-    if (d[i] < 250) return true;
+  let n = 0;
+  for (let i = 3; i < d.length; i += 4) { // أي بكسل شفاف فعلًا (مش عينة) عشان ميفوتناش
+    if (d[i] < 250 && ++n > 20) return true;
   }
   return false;
 }
