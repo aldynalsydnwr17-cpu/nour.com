@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صنع نور الدين</title>
 <meta name="description" content="أدوات مجانية لتجهيز الصور: تقريب الحواف وتجهيز أيقونات رولز ديسكورد، بتشتغل جوه متصفحك من غير ما تترفع صورتك.">
@@ -17,12 +18,22 @@
     --bg:#0a0a12; --surface:#11111d; --surface2:#171726; --line:#25253b;
     --text:#edecf6; --muted:#8e8ea8;
     --accent:#7468ff; --accent2:#5648f0; --accentSoft:rgba(116,104,255,.14); --accentLine:rgba(116,104,255,.45);
-    --ok:#6ee7b7;
+    --ok:#6ee7b7; --tickerbg:rgba(17,17,29,.7); --dockbg:rgba(10,10,18,.92);
+    --chk1:#1c1c2c; --chkbg:#13131f; --sw:#2b2b44; --glow:rgba(116,104,255,.16);
+    color-scheme:dark;
+  }
+  :root[data-theme=light]{
+    --bg:#f5f5fb; --surface:#ffffff; --surface2:#f0f0fa; --line:#dcdcee;
+    --text:#1a1a2e; --muted:#5f5f7c;
+    --accent:#5b4df0; --accent2:#4638d8; --accentSoft:rgba(91,77,240,.1); --accentLine:rgba(91,77,240,.4);
+    --ok:#0f9d6b; --tickerbg:rgba(255,255,255,.85); --dockbg:rgba(255,255,255,.92);
+    --chk1:#e4e4f1; --chkbg:#f4f4fb; --sw:#c6c6dc; --glow:rgba(91,77,240,.12);
+    color-scheme:light;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:12px}
   body{
-    background:var(--bg) radial-gradient(70% 38% at 85% -4%,rgba(116,104,255,.16),transparent 70%) no-repeat;
+    background:var(--bg) radial-gradient(70% 38% at 85% -4%,var(--glow),transparent 70%) no-repeat;
     color:var(--text); line-height:1.75; -webkit-font-smoothing:antialiased;
     font-family:"IBM Plex Sans Arabic","Tajawal","Segoe UI",system-ui,sans-serif;
     padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));
@@ -32,7 +43,7 @@
   svg{display:block}
 
   /* شريط معلومات متحرك */
-  .ticker{direction:ltr;overflow:hidden;border-bottom:1px solid var(--line);background:rgba(17,17,29,.7);
+  .ticker{direction:ltr;overflow:hidden;border-bottom:1px solid var(--line);background:var(--tickerbg);
     padding-top:env(safe-area-inset-top,0px)}
   .track{display:flex;width:max-content;animation:tick 34s linear infinite}
   .track span{direction:rtl;display:flex;align-items:center;gap:10px;padding:10px 22px;white-space:nowrap;
@@ -95,14 +106,14 @@
   .sec-head p{color:var(--muted);margin-top:6px}
   .panel{margin-top:22px;background:linear-gradient(180deg,var(--surface2),var(--surface));
     border:1px solid var(--line);border-radius:26px;padding:22px}
-  #drop{border:1.5px dashed var(--accentLine);border-radius:20px;padding:36px 16px;text-align:center;cursor:pointer;
+  #drop,#bDrop{border:1.5px dashed var(--accentLine);border-radius:20px;padding:36px 16px;text-align:center;cursor:pointer;
     transition:.2s;background:rgba(116,104,255,.04)}
-  #drop:hover,#drop.drag{background:var(--accentSoft);border-color:var(--accent)}
-  #drop .up{width:56px;height:56px;margin:0 auto 12px;border-radius:16px;background:var(--accentSoft);
+  #drop:hover,#drop.drag,#bDrop:hover,#bDrop.drag{background:var(--accentSoft);border-color:var(--accent)}
+  #drop .up,#bDrop .up{width:56px;height:56px;margin:0 auto 12px;border-radius:16px;background:var(--accentSoft);
     display:grid;place-items:center;color:var(--accent)}
-  #drop p{font-size:18px;font-weight:600}
-  #drop span{color:var(--muted);font-size:14px}
-  #fileInput{display:none}
+  #drop p,#bDrop p{font-size:18px;font-weight:600}
+  #drop span,#bDrop span{color:var(--muted);font-size:14px}
+  #fileInput,#bInput{display:none}
   .opts{display:grid;gap:10px;margin-top:18px}
   .opts label{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;cursor:pointer;
     background:var(--bg);border:1px solid var(--line);font-size:15px;font-weight:600;transition:border-color .2s,background .2s}
@@ -111,7 +122,7 @@
     background:var(--surface2);border:1px solid var(--line);color:var(--accent)}
   .opts .ic svg{width:22px;height:22px}
   .opts .tx{flex:1;min-width:0;line-height:1.5}
-  .opts .sw{position:relative;width:46px;height:26px;border-radius:99px;background:#2b2b44;flex-shrink:0;transition:background .2s}
+  .opts .sw{position:relative;width:46px;height:26px;border-radius:99px;background:var(--sw);flex-shrink:0;transition:background .2s}
   .opts .sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;
     background:#fff;transition:transform .2s}
   .opts input{position:absolute;opacity:0;pointer-events:none}
@@ -126,9 +137,9 @@
   .box h3{margin-bottom:10px;color:var(--muted);font-size:14px;font-weight:500}
   .frame{display:inline-block;max-width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);
     background:
-      linear-gradient(45deg,#1c1c2c 25%,transparent 25%,transparent 75%,#1c1c2c 75%),
-      linear-gradient(45deg,#1c1c2c 25%,transparent 25%,transparent 75%,#1c1c2c 75%);
-    background-size:16px 16px;background-position:0 0,8px 8px;background-color:#13131f}
+      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%),
+      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%);
+    background-size:16px 16px;background-position:0 0,8px 8px;background-color:var(--chkbg)}
   .frame img,.frame canvas{display:block;max-width:100%;max-height:260px}
   .dims{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
   .actions{display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap}
@@ -155,21 +166,117 @@
 
   /* شريط التنقل السفلي */
   .dock{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;justify-content:space-around;
-    background:rgba(10,10,18,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    background:var(--dockbg);backdrop-filter:blur(14px);border-top:1px solid var(--line);
     padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
   .dock a{display:grid;justify-items:center;gap:2px;padding:6px 18px;color:var(--muted);font-size:11px;border-radius:12px}
   .dock a:hover,.dock a:focus-visible{color:var(--text);background:var(--surface)}
   .dock svg{width:24px;height:24px}
 
+
+  /* أزرار الهيدر */
+  .hbtns{display:flex;gap:10px}
+  .theme-ic{display:none}
+  :root[data-theme=light] .theme-ic.sun{display:block}
+  :root:not([data-theme=light]) .theme-ic.moon{display:block}
+
+  /* صور الكروت */
+  .thumb{height:132px;border-radius:18px;margin-bottom:20px;border:1px solid var(--line);overflow:hidden;
+    background:radial-gradient(90% 120% at 20% 0%,var(--accentSoft),transparent 70%),var(--surface);
+    display:grid;place-items:center;color:var(--accent)}
+  .thumb svg{width:100%;height:100%}
+  .cards{grid-template-columns:1fr}
+  .card .cap{margin-top:12px;font-size:14px;color:var(--accent);font-weight:600;text-align:center}
+
+  /* مقارنة قبل وبعد */
+  .compare{display:none;flex-direction:column;align-items:center;margin-top:22px}
+  .stage{position:relative;width:100%;max-width:440px;aspect-ratio:1/1;border-radius:20px;overflow:hidden;direction:ltr;
+    border:1px solid var(--line);touch-action:pan-y;user-select:none;
+    background:linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%),
+      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%);
+    background-size:16px 16px;background-position:0 0,8px 8px;background-color:var(--chkbg)}
+  .stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;max-height:none;max-width:none}
+  .stage .bef{clip-path:inset(0 50% 0 0);background:var(--chkbg)}
+  .stage .tag{position:absolute;top:12px;padding:3px 12px;border-radius:99px;font-size:13px;font-weight:600;
+    background:rgba(10,10,18,.72);color:#fff;pointer-events:none;z-index:2}
+  .stage .tag.l{left:12px}.stage .tag.r{right:12px}
+  .stage .bar{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:#fff;z-index:3;pointer-events:none;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .stage .bar::after{content:"";position:absolute;top:50%;left:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;
+    background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center/22px no-repeat;
+    border:2px solid #fff}
+  .stage input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:4;margin:0}
+  .hint{color:var(--muted);font-size:13px;margin-top:10px}
+
+  /* معاينة الرول */
+  .rprev{display:none;margin-top:20px;border:1px solid var(--line);border-radius:20px;padding:18px;background:#313338;color:#f2f3f5;direction:rtl}
+  .rprev h4{font-size:14px;font-weight:600;color:#b5bac1;margin-bottom:14px}
+  .rprev .line{display:flex;align-items:center;gap:12px;padding:6px 0}
+  .rprev canvas{background:#2b2d31;flex-shrink:0;border-radius:50%}
+  .rprev .nm{font-weight:600}
+  .rprev .nm small{display:block;color:#b5bac1;font-weight:400;font-size:12px}
+  .rprev .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:8px;background:#1e1f22;font-size:13px;font-weight:600;color:#f2f3f5}
+  .rprev .pill canvas{width:18px;height:18px;border-radius:50%;background:transparent}
+
+  /* البانر */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .chip{border:1px solid var(--line);background:var(--bg);color:var(--text);padding:10px 16px;border-radius:14px;cursor:pointer;
+    font-size:14px;font-weight:600;font-family:inherit;line-height:1.4;text-align:start}
+  .chip small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+  .chip[aria-pressed=true]{border-color:var(--accent);background:var(--accentSoft)}
+  .lbl{margin-top:20px;font-weight:600;font-size:15px}
+  .rng{display:flex;align-items:center;gap:14px;margin-top:10px}
+  .rng input{flex:1;accent-color:var(--accent)}
+  .rng output{min-width:46px;text-align:center;color:var(--muted);font-size:14px}
+  .bwrap{margin-top:22px;display:none;justify-content:center}
+  .bwrap canvas{max-width:100%;height:auto;border-radius:16px;border:1px solid var(--line)}
+  input[type=color]{width:44px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:3px;cursor:pointer}
+
+  /* تواصل */
+  .contact{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:22px;border:1px solid var(--line);border-radius:24px;
+    background:linear-gradient(180deg,var(--surface2),var(--surface));margin-top:22px}
+  .contact .tile{width:58px;height:58px;border-radius:16px;background:#5865f2;border-color:transparent;color:#fff}
+  .contact .who{flex:1;min-width:180px}
+  .contact .who b{display:block;font-size:18px}
+  .contact .who span{color:var(--muted);font-size:14px}
+  .user{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:14px;cursor:pointer;
+    background:var(--bg);border:1px solid var(--line);color:var(--text);font:600 16px/1 inherit;font-family:inherit;direction:ltr}
+  .user:hover{border-color:var(--accent)}
+  .user svg{width:20px;height:20px;color:#5865f2}
+  .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;
+    background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:14px;font-weight:600;z-index:50;
+    pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
   @media(min-width:760px){
-    .cards{grid-template-columns:1fr 1fr}
+    .cards{grid-template-columns:repeat(3,1fr)}
     .steps{grid-template-columns:repeat(3,1fr)}
     .step{flex-direction:column}
     .opts{grid-template-columns:1fr 1fr}
     .dock{display:none}
     body{padding-bottom:0}
   }
-  @media(prefers-reduced-motion:reduce){.track{animation:none}html{scroll-behavior:auto}.btn{transition:none}}
+
+
+  /* حركات الأزرار */
+  .menu-btn{transition:transform .15s,border-color .2s,background .2s}
+  .menu-btn:active{transform:scale(.88)}
+  .burger path{transition:transform .35s cubic-bezier(.5,1.6,.4,1),opacity .2s;transform-origin:12px 12px;transform-box:view-box}
+  #menuBtn[aria-expanded=true]{background:var(--accentSoft);border-color:var(--accent)}
+  #menuBtn[aria-expanded=true] .b1{transform:translateY(5px) rotate(45deg)}
+  #menuBtn[aria-expanded=true] .b2{opacity:0;transform:scaleX(0)}
+  #menuBtn[aria-expanded=true] .b3{transform:translateY(-5px) rotate(-45deg)}
+  .drawer.open{animation:dIn .35s cubic-bezier(.2,.8,.2,1)}
+  .drawer.open a{animation:aIn .4s cubic-bezier(.2,.8,.2,1) backwards}
+  .drawer.open a:nth-child(1){animation-delay:.04s}.drawer.open a:nth-child(2){animation-delay:.08s}
+  .drawer.open a:nth-child(3){animation-delay:.12s}.drawer.open a:nth-child(4){animation-delay:.16s}
+  .drawer.open a:nth-child(5){animation-delay:.2s}.drawer.open a:nth-child(6){animation-delay:.24s}
+  @keyframes dIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+  @keyframes aIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  #themeBtn svg{transition:transform .5s cubic-bezier(.3,1.5,.4,1)}
+  #themeBtn.spin svg{animation:spinIn .55s cubic-bezier(.3,1.4,.4,1)}
+  @keyframes spinIn{0%{transform:rotate(-200deg) scale(.3);opacity:0}100%{transform:none;opacity:1}}
+  html.theme-anim,html.theme-anim *{transition:background-color .45s,color .45s,border-color .45s !important}
+  @media(prefers-reduced-motion:reduce){.burger path,#themeBtn svg,.drawer.open,.drawer.open a{transition:none !important;animation:none !important}.track{animation:none}html{scroll-behavior:auto}.btn{transition:none}}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
@@ -187,13 +294,18 @@
     <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b80ff"/><stop offset="1" stop-color="#4a3ce0"/></linearGradient><radialGradient id="r" cx=".3" cy=".2" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="64" height="64" rx="18" fill="url(#g)"/><rect width="64" height="64" rx="18" fill="url(#r)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 26V19a2 2 0 0 1 2-2h7"/><path d="M38 17h7a2 2 0 0 1 2 2v7"/><path d="M47 38v7a2 2 0 0 1-2 2h-7"/><path d="M26 47h-7a2 2 0 0 1-2-2v-7"/></g><path d="M32 22c1.2 6.2 3.8 8.8 10 10-6.2 1.2-8.8 3.8-10 10-1.2-6.2-3.8-8.8-10-10 6.2-1.2 8.8-3.8 10-10z" fill="#fff"/></svg>
     <div><b>نور الدين</b><small>أدوات الصور</small></div>
   </div>
+  <div class="hbtns">
+  <button class="menu-btn" id="themeBtn" type="button" aria-label="تبديل الوضع الفاتح والداكن"><svg class="theme-ic sun" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="theme-ic moon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13.2A8.5 8.5 0 1 1 10.8 3a6.7 6.7 0 0 0 10.2 10.2z"/></svg></button>
   <button class="menu-btn" id="menuBtn" aria-label="القائمة" aria-expanded="false" aria-controls="drawer">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <svg class="burger" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path class="b1" d="M4 7h16"/><path class="b2" d="M4 12h16"/><path class="b3" d="M4 17h16"/></svg>
   </button>
+  </div>
 </header>
 <nav class="drawer" id="drawer" aria-label="القائمة الرئيسية">
   <a href="#tools">الأدوات</a>
   <a href="#workspace">ارفع صورتك</a>
+  <a href="#banner">صورة لبانر</a>
+  <a href="#contact">تواصل معايا</a>
   <a href="#how">إزاي بيشتغل</a>
   <a href="#faq">الأسئلة الشائعة</a>
 </nav>
@@ -211,6 +323,7 @@
 
   <div class="cards" id="tools">
     <article class="card">
+<div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="70" y="14" width="160" height="104" rx="10" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="5 5"/><rect x="104" y="30" width="92" height="72" rx="8" fill="currentColor" opacity=".25"/><path d="M150 44c1.5 8 5 11.5 13 13-8 1.5-11.5 5-13 13-1.5-8-5-11.5-13-13 8-1.5 11.5-5 13-13z" fill="currentColor"/><g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M92 40V32a4 4 0 0 1 4-4h8"/><path d="M196 28h8a4 4 0 0 1 4 4v8"/><path d="M208 92v8a4 4 0 0 1-4 4h-8"/><path d="M104 104h-8a4 4 0 0 1-4-4v-8"/></g></svg></div>
       <div class="card-head">
         <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></svg></div>
         <div><h3>تقريب الحواف</h3><span class="badge">الأكثر استخداماً</span></div>
@@ -226,6 +339,7 @@
     </article>
 
     <article class="card">
+<div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><circle cx="82" cy="66" r="42" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M82 40c2.4 14 9 20.6 23 23-14 2.4-20.6 9-23 23-2.4-14-9-20.6-23-23 14-2.4 20.6-9 23-23z" fill="currentColor"/><circle cx="170" cy="66" r="24" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M170 52c1.4 8 5 11.6 13 13-8 1.4-11.6 5-13 13-1.4-8-5-11.6-13-13 8-1.4 11.6-5 13-13z" fill="currentColor"/><circle cx="228" cy="66" r="13" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M228 58c.8 4.6 2.8 6.6 7.6 7.4-4.8.8-6.8 2.8-7.6 7.6-.8-4.8-2.8-6.8-7.6-7.6 4.8-.8 6.8-2.8 7.6-7.4z" fill="currentColor"/><rect x="258" y="58" width="26" height="16" rx="8" fill="currentColor" opacity=".18"/></svg></div>
       <div class="card-head">
         <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7l1.6 3.4L17 12l-3.4 1.6L12 17l-1.6-3.4L7 12l3.4-1.6z"/></svg></div>
         <div><h3>مقاس رولز ديسكورد</h3><span class="badge">جديد</span></div>
@@ -239,6 +353,22 @@
       </ul>
       <button class="btn" type="button" data-mode="role">جهّز أيقونة رول</button>
     </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="30" y="34" width="64" height="64" rx="10" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2"/><path d="M112 66h30M132 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="156" y="26" width="116" height="80" rx="10" fill="currentColor" opacity=".1" stroke="currentColor" stroke-opacity=".4"/><rect x="190" y="36" width="48" height="60" rx="8" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2"/><path d="M214 56c1.2 6 4 8.8 10 10-6 1.2-8.8 4-10 10-1.2-6-4-8.8-10-10 6-1.2 8.8-4 10-10z" fill="currentColor"/></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 3v4M16 3v4M8 17v4M16 17v4" opacity=".5"/></svg></div>
+        <div><h3>صورة مربعة لبانر</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">حوّل أي صورة مربعة لبانر عريض بمقاس ديسكورد أو تويتر، والخلفية بتتعمل تلقائي من ألوان صورتك.</p>
+      <hr>
+      <ul class="feats">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>مقاسات جاهزة للبانر</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>خلفية غبشة أو لون أو شفافة</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تتحكم في حجم الصورة جوه البانر</li>
+      </ul>
+      <button class="btn" type="button" data-mode="banner">اعمل بانر</button>
+      <p class="cap">صورة مربعة ← بانر</p>
+    </article>
   </div>
 
   <section id="workspace">
@@ -247,7 +377,7 @@
       <p>اختار الوضع من الخيارات تحت، والنتيجة بتظهر قدامك فورًا.</p>
     </div>
     <div class="panel">
-      <div id="drop" role="button" tabindex="0">
+      <div id="drop" class="drop" role="button" tabindex="0">
         <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
         <p>اضغط هنا أو اسحب الصورة</p>
         <span>PNG أو JPG أو WebP</span>
@@ -259,9 +389,21 @@
         <label><input type="checkbox" id="roleOpt"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5c.5 3 1.5 4 4.5 4.5-3 .5-4 1.5-4.5 4.5-.5-3-1.5-4-4.5-4.5 3-.5 4-1.5 4.5-4.5z"/></svg></span><span class="tx">شكل يناسب رولز ديسكورد<small>معالجة ذكية للحواف الأربعة</small></span><span class="sw"></span></label>
       </div>
 
-      <div class="row" id="previewRow" style="display:none">
-        <div class="box"><h3>قبل</h3><div class="frame"><img id="beforeImg" alt="الصورة قبل المعالجة"></div></div>
-        <div class="box"><h3>بعد</h3><div class="frame"><canvas id="afterCanvas"></canvas></div></div>
+      <div class="compare" id="previewRow">
+        <div class="stage" id="stage">
+          <canvas id="afterCanvas"></canvas>
+          <img id="beforeImg" class="bef" alt="الصورة قبل المعالجة">
+          <span class="tag l">قبل</span><span class="tag r">بعد</span>
+          <div class="bar" id="bar"></div>
+          <input type="range" id="cmp" min="0" max="100" value="50" aria-label="مقارنة قبل وبعد">
+        </div>
+        <p class="hint">اسحب الشريط عشان تقارن قبل وبعد</p>
+      </div>
+      <div class="rprev" id="rolePrev">
+        <h4>معاينة تقريبية في ديسكورد</h4>
+        <div class="line"><canvas id="rp64" width="64" height="64"></canvas><div class="nm">الحجم الكبير<small>زي ما بيظهر في الملف الشخصي</small></div></div>
+        <div class="line"><canvas id="rp32" width="32" height="32"></canvas><div class="nm">الحجم المتوسط</div></div>
+        <div class="line"><span class="pill"><canvas id="rp18" width="18" height="18"></canvas>اسم الرول</span><div class="nm"><small>الحجم الصغير جنب الاسم</small></div></div>
       </div>
       <div class="dims" id="dims"></div>
 
@@ -272,11 +414,62 @@
     </div>
   </section>
 
+  <section id="banner">
+    <div class="sec-head">
+      <h2>صورة مربعة لبانر</h2>
+      <p>ارفع صورتك المربعة واختار المقاس، والبانر بيتجهّز قدامك.</p>
+    </div>
+    <div class="panel">
+      <div id="bDrop" class="drop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>الأفضل تكون مربعة</span>
+        <input type="file" id="bInput" accept="image/*">
+      </div>
+
+      <p class="lbl">مقاس البانر</p>
+      <div class="chips" id="bSizes">
+        <button class="chip" type="button" data-w="960" data-h="540" aria-pressed="true">بانر سيرفر ديسكورد<small>960×540</small></button>
+        <button class="chip" type="button" data-w="600" data-h="240" aria-pressed="false">بانر بروفايل ديسكورد<small>600×240</small></button>
+        <button class="chip" type="button" data-w="1500" data-h="500" aria-pressed="false">غلاف تويتر / X<small>1500×500</small></button>
+      </div>
+
+      <p class="lbl">الخلفية</p>
+      <div class="chips" id="bBg">
+        <button class="chip" type="button" data-bg="blur" aria-pressed="true">غبشة من الصورة</button>
+        <button class="chip" type="button" data-bg="color" aria-pressed="false">لون ثابت</button>
+        <button class="chip" type="button" data-bg="none" aria-pressed="false">شفافة</button>
+        <input type="color" id="bColor" value="#5648f0" aria-label="اختار اللون">
+      </div>
+
+      <p class="lbl">حجم الصورة جوه البانر</p>
+      <div class="rng"><input type="range" id="bScale" min="40" max="100" value="82"><output id="bScaleOut">82%</output></div>
+
+      <div class="bwrap" id="bWrap"><canvas id="bCanvas"></canvas></div>
+      <div class="dims" id="bDims"></div>
+      <div class="actions">
+        <button class="btn" id="bDownload" type="button" disabled>تنزيل البانر</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="sec-head"><h2>تواصل معايا</h2><p>عندك اقتراح أو مشكلة؟ كلمني على ديسكورد.</p></div>
+    <div class="contact">
+      <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.2.5c1.7.4 2.5 1 3.5 1.8a13 13 0 0 0-5-1.4h-3.4a13 13 0 0 0-5 1.4C6.3 4.5 7.200 3.900 8.900 3.500L8.700 3a19.800 19.800 0 0 0-4.900 1.400C.7 9 -.1 13.500.3 18c2 1.500 4 2.400 6 3l1.300-2.100a12 12 0 0 1-2-1l.5-.4a14 14 0 0 0 11.800 0l.5.400a12 12 0 0 1-2 1L17.700 21c2-.6 4-1.500 6-3 .5-5.200-.8-9.700-3.400-13.600zM8.500 15.200c-1.200 0-2.100-1.100-2.100-2.400s.9-2.400 2.100-2.400 2.100 1.100 2.100 2.400-.9 2.400-2.100 2.400zm7 0c-1.200 0-2.100-1.100-2.100-2.400s.9-2.400 2.100-2.400 2.100 1.100 2.100 2.400-.9 2.400-2.100 2.400z"/></svg></div>
+      <div class="who"><b>ديسكورد</b><span>اضغط على اليوزر عشان تنسخه</span></div>
+      <button class="user" id="userBtn" type="button" aria-label="انسخ يوزر ديسكورد">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.2.5c1.7.4 2.5 1 3.5 1.8a13 13 0 0 0-5-1.4h-3.4a13 13 0 0 0-5 1.4C6.3 4.5 7.200 3.900 8.900 3.500L8.700 3a19.800 19.800 0 0 0-4.900 1.400C.7 9 -.1 13.500.3 18c2 1.500 4 2.400 6 3l1.300-2.100a12 12 0 0 1-2-1l.5-.4a14 14 0 0 0 11.800 0l.5.400a12 12 0 0 1-2 1L17.700 21c2-.6 4-1.500 6-3 .5-5.200-.8-9.700-3.400-13.600z"/></svg>
+        <span id="userTxt">v6xwlp_</span>
+      </button>
+    </div>
+  </section>
+
   <section id="how">
     <div class="sec-head"><h2>إزاي بيشتغل</h2><p>تلات خطوات وخلاص.</p></div>
     <div class="steps">
       <div class="step"><div class="n">1</div><div><b>ارفع الصورة</b><p>اختار صورة من جهازك أو اسحبها على المربع.</p></div></div>
-      <div class="step"><div class="n">2</div><div><b>اختار الوضع</b><p>تقريب عادي، أو مقاس جاهز لأيقونة رول ديسكورد.</p></div></div>
+      <div class="step"><div class="n">2</div><div><b>اختار الوضع</b><p>تقريب عادي، أو أيقونة رول، أو بانر عريض من صورة مربعة.</p></div></div>
       <div class="step"><div class="n">3</div><div><b>نزّل النتيجة</b><p>شوف قبل وبعد، وبعدين نزّل PNG شفاف.</p></div></div>
     </div>
   </section>
@@ -291,6 +484,7 @@
 </main>
 
 <footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور</footer>
+<div class="toast" id="toast" role="status"></div>
 
 <nav class="dock" aria-label="تنقل سريع">
   <a href="#top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</a>
@@ -330,6 +524,7 @@ roleOpt.addEventListener('change', () => {
 resetBtn.addEventListener('click', () => {
   fileInput.value = '';
   beforeImg.removeAttribute('src');
+  document.getElementById('rolePrev').style.display = 'none';
   previewRow.style.display = 'none';
   dims.textContent = '';
   downloadBtn.disabled = true;
@@ -397,7 +592,7 @@ function process(src) {
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
       dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
-      previewRow.style.display = 'flex';
+      previewRow.style.display = 'flex'; renderRolePreview(outCanvas); setCmp(50);
       resetBtn.style.display = 'inline-block';
 
       outCanvas.toBlob(blob => {
@@ -602,6 +797,124 @@ downloadBtn.addEventListener('click', () => {
 });
 
 
+// ===== مقارنة قبل وبعد =====
+const cmp = document.getElementById('cmp');
+function setCmp(v) {
+  cmp.value = v;
+  beforeImg.style.clipPath = `inset(0 ${100 - v}% 0 0)`;
+  document.getElementById('bar').style.left = v + '%';
+}
+cmp.addEventListener('input', () => setCmp(cmp.value));
+
+// ===== معاينة الرول =====
+function renderRolePreview(src) {
+  const box = document.getElementById('rolePrev');
+  if (!roleOpt.checked) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  [64, 32, 18].forEach(n => {
+    const c = document.getElementById('rp' + n);
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, n, n);
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(src, 0, 0, n, n);
+  });
+}
+
+// ===== الوضع الفاتح والداكن =====
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  root.classList.add('theme-anim'); setTimeout(() => root.classList.remove('theme-anim'), 500);
+  const tb = document.getElementById('themeBtn'); tb.classList.remove('spin'); void tb.offsetWidth; tb.classList.add('spin');
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('theme', next); } catch (e) {}
+  const m = document.querySelector('meta[name=theme-color]');
+  if (m) m.content = next === 'light' ? '#f5f5fb' : '#0a0a12';
+});
+
+// ===== نسخ يوزر ديسكورد =====
+const toast = document.getElementById('toast');
+function showToast(t) {
+  toast.textContent = t; toast.classList.add('show');
+  clearTimeout(showToast.t); showToast.t = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+document.getElementById('userBtn').addEventListener('click', async () => {
+  const name = 'v6xwlp_';
+  try { await navigator.clipboard.writeText(name); }
+  catch (e) {
+    const t = document.createElement('textarea'); t.value = name; document.body.appendChild(t);
+    t.select(); try { document.execCommand('copy'); } catch (_) {} t.remove();
+  }
+  showToast('اتنسخ اليوزر ✓');
+});
+
+// ===== صورة مربعة لبانر =====
+const bDrop = document.getElementById('bDrop'), bInput = document.getElementById('bInput');
+const bCanvas = document.getElementById('bCanvas'), bWrap = document.getElementById('bWrap');
+const bDims = document.getElementById('bDims'), bDownload = document.getElementById('bDownload');
+const bScale = document.getElementById('bScale'), bScaleOut = document.getElementById('bScaleOut');
+const bColor = document.getElementById('bColor');
+let bImg = null, bW = 960, bH = 540, bBg = 'blur', bUrl = null;
+
+function drawBanner() {
+  if (!bImg) return;
+  bCanvas.width = bW; bCanvas.height = bH;
+  const ctx = bCanvas.getContext('2d');
+  ctx.clearRect(0, 0, bW, bH);
+  const iw = bImg.naturalWidth, ih = bImg.naturalHeight;
+  if (bBg === 'blur') {
+    // تغبيش بسيط: نصغّر الصورة جدًا وبعدين نكبّرها ونغطي بيها البانر كله
+    const t = document.createElement('canvas'); t.width = 24; t.height = Math.max(2, Math.round(24 * bH / bW));
+    const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high';
+    const k = Math.max(t.width / iw, t.height / ih);
+    tx.drawImage(bImg, (t.width - iw * k) / 2, (t.height - ih * k) / 2, iw * k, ih * k);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(t, 0, 0, bW, bH);
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(0, 0, bW, bH);
+  } else if (bBg === 'color') {
+    ctx.fillStyle = bColor.value; ctx.fillRect(0, 0, bW, bH);
+  }
+  const k = Math.min(bW / iw, bH / ih) * (bScale.value / 100);
+  const w = iw * k, h = ih * k;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bImg, (bW - w) / 2, (bH - h) / 2, w, h);
+  bWrap.style.display = 'flex';
+  bDims.textContent = `مقاس البانر: ${bW}×${bH}`;
+  bCanvas.toBlob(b => { if (bUrl) URL.revokeObjectURL(bUrl); bUrl = URL.createObjectURL(b); bDownload.disabled = false; }, 'image/png');
+}
+function loadBanner(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = e => { const im = new Image(); im.onload = () => { bImg = im; drawBanner(); }; im.src = e.target.result; };
+  r.readAsDataURL(file);
+}
+bInput.addEventListener('change', e => loadBanner(e.target.files[0]));
+bDrop.addEventListener('click', () => bInput.click());
+bDrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bInput.click(); } });
+['dragenter', 'dragover'].forEach(ev => bDrop.addEventListener(ev, e => { e.preventDefault(); bDrop.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => bDrop.addEventListener(ev, e => { e.preventDefault(); bDrop.classList.remove('drag'); }));
+bDrop.addEventListener('drop', e => loadBanner(e.dataTransfer.files[0]));
+function chipGroup(id, fn) {
+  const g = document.getElementById(id);
+  g.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    g.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    c.setAttribute('aria-pressed', 'true'); fn(c); drawBanner();
+  }));
+}
+chipGroup('bSizes', c => { bW = +c.dataset.w; bH = +c.dataset.h; });
+chipGroup('bBg', c => { bBg = c.dataset.bg; });
+bColor.addEventListener('input', () => {
+  bBg = 'color';
+  document.querySelectorAll('#bBg .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.bg === 'color'));
+  drawBanner();
+});
+bScale.addEventListener('input', () => { bScaleOut.textContent = bScale.value + '%'; drawBanner(); });
+bDownload.addEventListener('click', () => {
+  if (!bUrl) return;
+  const a = document.createElement('a'); a.href = bUrl; a.download = `بانر-${bW}x${bH}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
 // ===== واجهة الصفحة =====
 const menuBtn = document.getElementById('menuBtn');
 const drawer = document.getElementById('drawer');
@@ -614,6 +927,7 @@ drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
 }));
 
 document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => {
+  if (btn.dataset.mode === 'banner') { document.getElementById('banner').scrollIntoView({behavior: 'smooth'}); return; }
   const wantRole = btn.dataset.mode === 'role';
   if (roleOpt.checked !== wantRole) { roleOpt.checked = wantRole; roleOpt.dispatchEvent(new Event('change')); }
   document.getElementById('workspace').scrollIntoView({behavior: 'smooth'});
