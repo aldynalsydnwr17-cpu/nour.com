@@ -14,6 +14,15 @@
     --chk1:#e4e4f1; --chkbg:#f4f4fb; --sw:#c6c6dc; --glow:rgba(91,77,240,.12);
     color-scheme:light;
   }
+  :root[data-theme=discord]{
+    --bg:#313338; --surface:#2b2d31; --surface2:#383a40; --line:#43464d;
+    --text:#f2f3f5; --muted:#b5bac1;
+    --accent:#7983f5; --accent2:#5865f2; --accentSoft:rgba(88,101,242,.18); --accentLine:rgba(121,131,245,.5);
+    --ok:#23a559; --tickerbg:rgba(30,31,34,.8); --dockbg:rgba(30,31,34,.95);
+    --chk1:#404249; --chkbg:#2b2d31; --sw:#4e5058; --glow:rgba(88,101,242,.22);
+    color-scheme:dark;
+  }
+  .theme-ic.disc{display:none}
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:12px}
   body{
@@ -161,7 +170,8 @@
   .hbtns{display:flex;gap:10px}
   .theme-ic{display:none}
   :root[data-theme=light] .theme-ic.sun{display:block}
-  :root:not([data-theme=light]) .theme-ic.moon{display:block}
+  :root:not([data-theme=light]):not([data-theme=discord]) .theme-ic.moon{display:block}
+  :root[data-theme=discord] .theme-ic.disc{display:block}
 
   /* صور الكروت */
   .thumb{height:132px;border-radius:18px;margin-bottom:20px;border:1px solid var(--line);overflow:hidden;
