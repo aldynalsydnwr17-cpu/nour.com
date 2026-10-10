@@ -227,7 +227,7 @@
   .user:hover{border-color:var(--accent)}
   .user svg{width:20px;height:20px;color:#5865f2}
   .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;
-    background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:14px;font-weight:600;z-index:50;
+    background:var(--text);color:var(--bg);padding:10px 20px;border-radius:18px;width:max-content;max-width:min(88vw,420px);text-align:center;line-height:1.8;font-size:14px;font-weight:600;z-index:50;
     pointer-events:none;transition:.25s}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 
