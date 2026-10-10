@@ -199,7 +199,8 @@ function smartRoleFit(img, data, w, h, hasAlpha, bg) {
   }
 
   // 3) نصف المربع: مش أقل من نص أكبر بُعد (عشان ميتقصش من الجنب)، مع هامش 4%
-  const half = Math.max(radius, Math.max(bw, bh) / 2) * 1.04;
+  // الأيقونة بتتعرض صغيرة جداً في ديسكورد، فنملّي المربع بأكبر بُعد تقريباً بدون هامش زيادة
+  const half = Math.max(bw, bh) / 2 * 1.015 + 1;
 
   // 4) نرسم الموضوع في مربع 256×256 شفاف
   const OUT = 256;
@@ -1137,3 +1138,36 @@ document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('cl
 
 drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
 route(true);
+
+
+// تحذير تحت كل أداة، بيظهر لما النتيجة تجهز (زرار التنزيل يتفعّل)
+const WARNS = {
+  downloadBtn: () => roleOpt.checked
+    ? ['ممكن إزالة الخلفية تاكل جزء من الموضوع أو تسيب بقايا، راجع الصورة قبل وبعد قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
+    : ['التقريب بيقص الأطراف الفاضية، راجع الحواف وتأكد إن مفيش جزء من الموضوع اتقص.', 'لو الصورة فيها ظل أو توهج خفيف ممكن يتشال مع الخلفية.', 'الصورة الأصلية مش بتتغير، اللي بتنزله نسخة جديدة.'],
+  bDownload: () => ['القص بيعتمد على الوضع والتكبير اللي اخترتهم، راجع الجزء الظاهر قبل التنزيل.', 'لو الصورة الأصلية صغيرة، تكبيرها لبانر كبير هيخليها باهتة.'],
+  rDownload: () => ['تغيير المقاس بالقص ممكن يقص جزء من الصورة، وبالتمديد ممكن يبوّظ النسب.', 'تكبير صورة صغيرة بيقلل جودتها.'],
+  cDownload: () => ['الضغط الشديد بيقلل الجودة ويظهر تشوّه في الصورة، راجع النتيجة قبل ما تحفظها.', 'الصورة الأصلية مش بتتغير، فاحتفظ بنسختك.'],
+  eDownload: () => ['زيادة التحسين أكتر من اللازم بتظهر حبيبات وهالات حوالين الحواف.', 'التحسين مش بيرجّع تفاصيل مش موجودة في الصورة الأصلية.'],
+  adDownload: () => ['زيادة السطوع أو التباين أو التشبع أكتر من اللازم بتحرق الألوان وتضيّع التفاصيل.', 'راجع الصورة بعد التعديل قبل ما تحفظها.'],
+  xDownload: () => ['التمويه ممكن ما يخفيش الكلام تماماً لو كان كبير ومقروء، زوّد القوة وراجع النتيجة.', 'لو بتخفي بيانات حساسة، اتأكد إن مفيش حاجة باينة قبل ما تشارك الصورة.']
+};
+Object.keys(WARNS).forEach(id => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const box = document.createElement('div');
+  box.className = 'warn'; box.style.display = 'none';
+  box.innerHTML = '<h4><span class="wi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>تحذير</h4><ul></ul>';
+  const actions = btn.closest('.actions');
+  actions.parentNode.insertBefore(box, actions);
+  const sync = () => {
+    const show = !btn.disabled;
+    if (show) {
+      const ul = box.querySelector('ul'); ul.innerHTML = '';
+      WARNS[id]().forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+    }
+    box.style.display = show ? 'block' : 'none';
+  };
+  new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+  sync();
+});
