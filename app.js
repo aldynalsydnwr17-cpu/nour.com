@@ -25,7 +25,6 @@ roleOpt.addEventListener('change', () => {
   if (roleOpt.checked) { squarePrev = squareOpt.checked; squareOpt.checked = true; }
   else { squareOpt.checked = squarePrev; }
   squareOpt.disabled = roleOpt.checked;
-  document.getElementById('sensBox').style.display = roleOpt.checked ? 'block' : 'none';
   if (beforeImg.getAttribute('src')) process(beforeImg.src);
 });
 resetBtn.addEventListener('click', () => {
@@ -102,12 +101,6 @@ function process(src) {
       let bg = hasAlpha ? null : sampleCorners(data, w, h);
       let srcImg = img, bgNote = '';
 
-      // وضع الرولز: لو الصورة ليها خلفية ثابتة نشيلها الأول، ولو مفيش نكمل تظبيط الأبعاد بس
-      if (roleOpt.checked && !hasAlpha) {
-        const cut = removeBackground(data, w, h);
-        if (cut) { srcImg = cut.canvas; data.data.set(cut.data); hasAlpha = true; bg = null; bgNote = '  —  اتشالت الخلفية'; }
-        else bgNote = '  —  مفيش خلفية ثابتة، اتظبطت الأبعاد بس';
-      }
       const box = findBounds(data, w, h, hasAlpha, bg);
       lastInfo = {w, h, kind: bgNote.includes('اتشالت') ? 'removed' : bgNote.includes('مفيش') ? 'none' : (hasAlpha ? 'alpha' : 'solid'), bg: (!hasAlpha || bgNote.includes('اتشالت')) ? sampleCorners(data0, w, h) : null, out: roleOpt.checked ? '256×256' : (box.maxX - box.minX + 1) + '×' + (box.maxY - box.minY + 1)};
 
@@ -116,7 +109,7 @@ function process(src) {
       let outCanvas = document.createElement('canvas');
 
       if (roleOpt.checked) {
-        outCanvas = smartRoleFit(srcImg, data, w, h, hasAlpha, bg);
+        outCanvas = botRoleFit(img);
       } else if (squareOpt.checked) {
         const trim = 0.02; // نسبة التقريب من الفوق ومن التحت
         const cutY = Math.floor(ch * trim);
@@ -157,7 +150,44 @@ function process(src) {
 
 // معالجة رولز ديسكورد: بتلاقي الموضوع الحقيقي وتتجاهل النقط الشاردة، وبتحسب أصغر دايرة
 // تغطي 99.5% من الموضوع (عشان ديسكورد بيعرض الأيقونة في إطار دايري صغير)، وبتحط الموضوع في
-// نص مربع 256×256 شفاف مع هامش بسيط، وبعدين بتزوّد التباين 10% زي ما اتفقنا
+// نفس معالجة أداة البوت لأيقونة الرول: قص مربع من النص، زوم 15% جوه الصورة، تصغير لـ 256×256، وتباين +0.15
+function botRoleFit(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const square = Math.min(w, h);
+  const crop = Math.max(1, Math.round(square * 0.85));
+  const x = Math.round((w - crop) / 2), y = Math.round((h - crop) / 2);
+  const OUT = 256;
+  let cur = document.createElement('canvas');
+  cur.width = crop; cur.height = crop;
+  cur.getContext('2d').drawImage(img, x, y, crop, crop, 0, 0, crop, crop);
+  let size = crop;
+  while (size / 2 > OUT) {                                // تصغير على مراحل عشان الجودة
+    const nxt = document.createElement('canvas');
+    const ns = Math.max(OUT, Math.floor(size / 2));
+    nxt.width = ns; nxt.height = ns;
+    const c = nxt.getContext('2d');
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    c.drawImage(cur, 0, 0, ns, ns);
+    cur = nxt; size = ns;
+  }
+  const out = document.createElement('canvas');
+  out.width = OUT; out.height = OUT;
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, 0, 0, OUT, OUT);
+  const id = ctx.getImageData(0, 0, OUT, OUT), p = id.data;
+  const f = (0.15 + 1) / (1 - 0.15);                       // نفس معادلة Jimp.contrast(0.15)
+  for (let i = 0; i < p.length; i += 4) {
+    for (let k = 0; k < 3; k++) {
+      const v = ((p[i + k] / 255 - 0.5) * f + 0.5) * 255;
+      p[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return out;
+}
+
+// (قديم، مش مستخدم) نص مربع 256×256 شفاف مع هامش بسيط، وبعدين بتزوّد التباين 10% زي ما اتفقنا
 function smartRoleFit(img, data, w, h, hasAlpha, bg) {
   const d = data.data;
   const tol = 28;
@@ -1199,7 +1229,7 @@ route(true);
 // تحذير تحت كل أداة، بيظهر لما النتيجة تجهز (زرار التنزيل يتفعّل)
 const WARNS = {
   downloadBtn: () => roleOpt.checked
-    ? ['ممكن إزالة الخلفية تاكل جزء من الموضوع أو تسيب بقايا، راجع الصورة قبل وبعد قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
+    ? ['الأداة بتقص مربع من نص الصورة وبتقرّب 15%، فأطراف الصورة ممكن تتقص، راجع النتيجة قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
     : ['التقريب بيقص الأطراف الفاضية، راجع الحواف وتأكد إن مفيش جزء من الموضوع اتقص.', 'لو الصورة فيها ظل أو توهج خفيف ممكن يتشال مع الخلفية.', 'الصورة الأصلية مش بتتغير، اللي بتنزله نسخة جديدة.'],
   bDownload: () => ['القص بيعتمد على الوضع والتكبير اللي اخترتهم، راجع الجزء الظاهر قبل التنزيل.', 'لو الصورة الأصلية صغيرة، تكبيرها لبانر كبير هيخليها باهتة.'],
   rDownload: () => ['تغيير المقاس بالقص ممكن يقص جزء من الصورة، وبالتمديد ممكن يبوّظ النسب.', 'تكبير صورة صغيرة بيقلل جودتها.'],
