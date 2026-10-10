@@ -109,7 +109,7 @@ function process(src) {
       let outCanvas = document.createElement('canvas');
 
       if (roleOpt.checked) {
-        outCanvas = botRoleFit(img);
+        outCanvas = smartRole(img);
       } else if (squareOpt.checked) {
         const trim = 0.02; // نسبة التقريب من الفوق ومن التحت
         const cutY = Math.floor(ch * trim);
@@ -132,6 +132,7 @@ function process(src) {
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
       dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
+      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.crop} · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}`;
       previewRow.style.display = 'flex'; renderRolePreview(outCanvas); if (!holdCmp) setCmp(50);
       resetBtn.style.display = 'inline-block';
 
@@ -150,7 +151,208 @@ function process(src) {
 
 // معالجة رولز ديسكورد: بتلاقي الموضوع الحقيقي وتتجاهل النقط الشاردة، وبتحسب أصغر دايرة
 // تغطي 99.5% من الموضوع (عشان ديسكورد بيعرض الأيقونة في إطار دايري صغير)، وبتحط الموضوع في
-// نفس معالجة أداة البوت لأيقونة الرول: قص مربع من النص، زوم 15% جوه الصورة، تصغير لـ 256×256، وتباين +0.15
+// ===== معالجة رولز ديسكورد الذكية =====
+// 1) تحديد الموضوع الأساسي (مش الوسط بس) 2) أصغر مربع يغطي الموضوع كله 3) تجربة درجات تباين وتشبع وحدّة
+// وقياس وضوح الأيقونة بالأحجام الصغير والمتوسط والكبير، واختيار أحسن نتيجة لكل صورة لوحدها
+let roleInfo = null;
+function smartRole(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  // ---- أ) خريطة الأهمية على نسخة صغيرة ----
+  const k = Math.min(1, 160 / Math.max(w, h));
+  const wc = Math.max(8, Math.round(w * k)), hc = Math.max(8, Math.round(h * k));
+  const wk = document.createElement('canvas'); wk.width = wc; wk.height = hc;
+  const wctx = wk.getContext('2d', { willReadFrequently: true });
+  wctx.imageSmoothingQuality = 'high';
+  wctx.drawImage(img, 0, 0, wc, hc);
+  const d = wctx.getImageData(0, 0, wc, hc).data;
+  const n = wc * hc;
+  let transparent = 0;
+  for (let i = 0; i < n; i++) if (d[i * 4 + 3] < 200) transparent++;
+  const alphaMode = transparent > n * 0.02;
+  const L = new Float32Array(n);
+  for (let i = 0; i < n; i++) L[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  let S = new Float32Array(n);
+  if (alphaMode) {
+    for (let i = 0; i < n; i++) S[i] = d[i * 4 + 3] / 255;
+  } else {
+    const gm = [0, 0, 0], bm = [0, 0, 0]; let bc = 0;
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) {
+      const i = (y * wc + x) * 4;
+      for (let c = 0; c < 3; c++) gm[c] += d[i + c];
+      if (x < 3 || y < 3 || x >= wc - 3 || y >= hc - 3) { for (let c = 0; c < 3; c++) bm[c] += d[i + c]; bc++; }
+    }
+    for (let c = 0; c < 3; c++) { gm[c] /= n; bm[c] /= bc; }
+    const col = new Float32Array(n), gr = new Float32Array(n);
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) {
+      const p = y * wc + x, i = p * 4;
+      const dg = Math.hypot(d[i] - gm[0], d[i + 1] - gm[1], d[i + 2] - gm[2]);
+      const db = Math.hypot(d[i] - bm[0], d[i + 1] - bm[1], d[i + 2] - bm[2]);
+      col[p] = Math.max(dg, db);
+      const xl = L[y * wc + Math.max(0, x - 1)], xr = L[y * wc + Math.min(wc - 1, x + 1)];
+      const yu = L[Math.max(0, y - 1) * wc + x], yd = L[Math.min(hc - 1, y + 1) * wc + x];
+      gr[p] = Math.abs(xr - xl) + Math.abs(yd - yu);
+    }
+    const pct = (arr, q) => { const s = Float32Array.from(arr).sort(); return s[Math.min(n - 1, Math.floor(q * n))]; };
+    const c95 = pct(col, 0.95) + 1e-6, g95 = pct(gr, 0.95) + 1e-6;
+    for (let i = 0; i < n; i++) S[i] = 0.65 * Math.min(1.5, col[i] / c95) + 0.35 * Math.min(1.5, gr[i] / g95);
+    const t = pct(S, 0.4);
+    for (let i = 0; i < n; i++) S[i] = Math.max(0, S[i] - t);
+    const B = new Float32Array(n);                            // تنعيم 3×3
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) {
+      let s = 0, c = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < wc && yy < hc) { s += S[yy * wc + xx]; c++; }
+      }
+      B[y * wc + x] = s / c;
+    }
+    S = B;
+  }
+  let total = 0; for (let i = 0; i < n; i++) total += S[i];
+
+  // ---- ب) أصغر مربع يغطي 94% من الموضوع، مع البحث عن أحسن مكان له ----
+  const m = Math.min(wc, hc);
+  let sz = Math.round(m * 0.85), bx = Math.round((wc - sz) / 2), by = Math.round((hc - sz) / 2);   // الاحتياطي: زي أداة البوت
+  let cropNote = 'قص من النص';
+  if (total > n * 0.01) {
+    const W1 = wc + 1;
+    const I = new Float64Array(W1 * (hc + 1));
+    for (let y = 0; y < hc; y++) { let row = 0; for (let x = 0; x < wc; x++) { row += S[y * wc + x]; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row; } }
+    const mass = (x0, y0, s) => I[(y0 + s) * W1 + x0 + s] - I[y0 * W1 + x0 + s] - I[(y0 + s) * W1 + x0] + I[y0 * W1 + x0];
+    let cx = 0, cy = 0;
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) { const v = S[y * wc + x]; cx += x * v; cy += y * v; }
+    cx /= total; cy /= total;
+    let found = null;
+    for (let f = 0.30; f <= 1.0001; f += 0.025) {
+      const s = Math.max(4, Math.min(m, Math.round(f * m)));
+      let best = -1, px = 0, py = 0;
+      for (let y0 = 0; y0 <= hc - s; y0++) for (let x0 = 0; x0 <= wc - s; x0++) {
+        const ms = mass(x0, y0, s) - 1e-4 * Math.hypot(x0 + s / 2 - cx, y0 + s / 2 - cy);
+        if (ms > best) { best = ms; px = x0; py = y0; }
+      }
+      const cov = mass(px, py, s) / total;
+      if (cov >= 0.94 || s === m) { found = { s, px, py, cov }; break; }
+    }
+    if (found) {
+      let s = Math.min(m, Math.round(found.s * 1.06));       // هامش 6%
+      const ccx = found.px + found.s / 2, ccy = found.py + found.s / 2;
+      bx = Math.round(Math.min(Math.max(0, ccx - s / 2), wc - s));
+      by = Math.round(Math.min(Math.max(0, ccy - s / 2), hc - s));
+      sz = s;
+      cropNote = 'قص على الموضوع (' + Math.round(found.cov * 100) + '% مغطّى)';
+    }
+  }
+  const sc = 1 / k;
+  let side = Math.min(Math.min(w, h), Math.round(sz * sc));
+  const sx = Math.round(Math.min(Math.max(0, bx * sc), w - side)), sy = Math.round(Math.min(Math.max(0, by * sc), h - side));
+
+  // ---- ج) نقص ونصغّر على مراحل لـ 256×256 ----
+  const OUT = 256;
+  let cur = document.createElement('canvas'); cur.width = side; cur.height = side;
+  cur.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, side, side);
+  let size = side;
+  while (size / 2 > OUT) {
+    const nx = document.createElement('canvas'); const ns = Math.max(OUT, Math.floor(size / 2));
+    nx.width = ns; nx.height = ns;
+    const c = nx.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    c.drawImage(cur, 0, 0, ns, ns); cur = nx; size = ns;
+  }
+  const base = document.createElement('canvas'); base.width = OUT; base.height = OUT;
+  const bctx = base.getContext('2d', { willReadFrequently: true });
+  bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
+  bctx.drawImage(cur, 0, 0, OUT, OUT);
+  const src = bctx.getImageData(0, 0, OUT, OUT).data;
+  const N = OUT * OUT;
+
+  // ---- د) تفاصيل الحدّة (الأصلي - تغبيش 3×3) نحسبها مرة واحدة ----
+  const det = new Float32Array(N * 3);
+  for (let y = 0; y < OUT; y++) for (let x = 0; x < OUT; x++) {
+    const i = y * OUT + x;
+    for (let c = 0; c < 3; c++) {
+      let s = 0, cnt = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < OUT && yy < OUT && src[(yy * OUT + xx) * 4 + 3] > 40) { s += src[(yy * OUT + xx) * 4 + c]; cnt++; }
+      }
+      det[i * 3 + c] = cnt ? src[i * 4 + c] - s / cnt : 0;
+    }
+  }
+  let sumL = 0, cntL = 0;
+  for (let i = 0; i < N; i++) if (src[i * 4 + 3] > 40) { sumL += 0.299 * src[i * 4] + 0.587 * src[i * 4 + 1] + 0.114 * src[i * 4 + 2]; cntL++; }
+  const pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
+
+  const render = (con, sat, shp, target) => {
+    const o = target || new Uint8ClampedArray(src.length);
+    for (let i = 0; i < N; i++) {
+      const j = i * 4; o[j + 3] = src[j + 3];
+      if (!src[j + 3]) { o[j] = o[j + 1] = o[j + 2] = 0; continue; }
+      const r = src[j] + shp * det[i * 3], g = src[j + 1] + shp * det[i * 3 + 1], b = src[j + 2] + shp * det[i * 3 + 2];
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      o[j] = (gray + (r - gray) * sat - pivot) * con + pivot;
+      o[j + 1] = (gray + (g - gray) * sat - pivot) * con + pivot;
+      o[j + 2] = (gray + (b - gray) * sat - pivot) * con + pivot;
+    }
+    return o;
+  };
+
+  // ---- هـ) مقياس الوضوح بالأحجام الحقيقية: 20 (صغير) و32 (متوسط) و64 (كبير) ----
+  const tmp = document.createElement('canvas'); tmp.width = OUT; tmp.height = OUT;
+  const tctx = tmp.getContext('2d', { willReadFrequently: true });
+  const sizes = [[20, 0.5], [32, 0.3], [64, 0.2]];
+  const bgs = alphaMode ? [[49, 51, 56], [242, 243, 245]] : [[49, 51, 56]];
+  const sat1 = v => Math.min(1, Math.max(0, v));
+  const legib = (px) => {
+    tctx.putImageData(new ImageData(new Uint8ClampedArray(px), OUT, OUT), 0, 0);
+    let score = 0;
+    for (const [s, wt] of sizes) {
+      const c = document.createElement('canvas'); c.width = s; c.height = s;
+      const cc = c.getContext('2d', { willReadFrequently: true });
+      cc.imageSmoothingEnabled = true; cc.imageSmoothingQuality = 'high';
+      let worst = 9;
+      for (const bgc of bgs) {
+        cc.fillStyle = `rgb(${bgc[0]},${bgc[1]},${bgc[2]})`; cc.fillRect(0, 0, s, s);
+        cc.drawImage(tmp, 0, 0, s, s);
+        const q = cc.getImageData(0, 0, s, s).data;
+        const l = new Float32Array(s * s);
+        let mean = 0, clip = 0;
+        for (let i = 0; i < s * s; i++) {
+          l[i] = 0.299 * q[i * 4] + 0.587 * q[i * 4 + 1] + 0.114 * q[i * 4 + 2]; mean += l[i];
+          if (l[i] < 4 || l[i] > 251) clip++;
+        }
+        mean /= s * s; clip /= s * s;
+        let v = 0, gsum = 0;
+        for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
+          const i = y * s + x; v += (l[i] - mean) * (l[i] - mean);
+          if (x + 1 < s) gsum += Math.abs(l[i + 1] - l[i]);
+          if (y + 1 < s) gsum += Math.abs(l[i + s] - l[i]);
+        }
+        const sd = Math.sqrt(v / (s * s)), gm = gsum / (2 * s * s);
+        const sc2 = 0.5 * sat1(sd / 42) + 0.5 * sat1(gm / 9) - 4 * Math.max(0, clip - 0.015);
+        if (sc2 < worst) worst = sc2;
+      }
+      score += wt * worst;
+    }
+    return score;
+  };
+
+  // ---- و) نجرّب كل التركيبات ونختار الأحسن ----
+  const CON = [1.0, 1.06, 1.12, 1.18, 1.25, 1.33, 1.42, 1.6, 1.8, 2.1, 2.5], SAT = [1.0, 1.1, 1.2], SHP = [0, 0.5, 1.0];
+  const buf = new Uint8ClampedArray(src.length);
+  let best = { sc: -9, con: 1, sat: 1, shp: 0 };
+  for (const con of CON) for (const sat of SAT) for (const shp of SHP) {
+    render(con, sat, shp, buf);
+    const cost = 0.30 * (con - 1) * (con - 1) + 0.05 * (sat - 1) / 0.2 + 0.04 * shp;
+    const sc3 = legib(buf) - cost;
+    if (sc3 > best.sc) best = { sc: sc3, con, sat, shp };
+  }
+  const outPx = render(best.con, best.sat, best.shp);
+  const out = document.createElement('canvas'); out.width = OUT; out.height = OUT;
+  out.getContext('2d').putImageData(new ImageData(outPx, OUT, OUT), 0, 0);
+  roleInfo = { crop: cropNote, con: best.con, sat: best.sat, shp: best.shp };
+  return out;
+}
+
+// (قديم، مش مستخدم) نفس معالجة أداة البوت لأيقونة الرول: قص مربع من النص، زوم 15% جوه الصورة، تصغير لـ 256×256، وتباين +0.15
 function botRoleFit(img) {
   const w = img.naturalWidth, h = img.naturalHeight;
   const square = Math.min(w, h);
@@ -538,13 +740,15 @@ function renderRolePreview(src) {
 // ===== الوضع الفاتح والداكن =====
 document.getElementById('themeBtn').addEventListener('click', () => {
   const root = document.documentElement;
-  const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  const cur = root.getAttribute('data-theme');
+  const next = cur === 'light' ? 'discord' : cur === 'discord' ? 'dark' : 'light';   // داكن ← فاتح ← ديسكورد ← داكن
   root.classList.add('theme-anim'); setTimeout(() => root.classList.remove('theme-anim'), 500);
   const tb = document.getElementById('themeBtn'); tb.classList.remove('spin'); void tb.offsetWidth; tb.classList.add('spin');
   root.setAttribute('data-theme', next);
   try { localStorage.setItem('theme', next); } catch (e) {}
   const m = document.querySelector('meta[name=theme-color]');
-  if (m) m.content = next === 'light' ? '#f5f5fb' : '#0a0a12';
+  if (m) m.content = next === 'light' ? '#f5f5fb' : next === 'discord' ? '#313338' : '#0a0a12';
+  showToast(next === 'light' ? 'الوضع الفاتح' : next === 'discord' ? 'ثيم ديسكورد' : 'الوضع الداكن', 1200);
 });
 
 // ===== نسخ يوزر ديسكورد =====
@@ -1229,7 +1433,7 @@ route(true);
 // تحذير تحت كل أداة، بيظهر لما النتيجة تجهز (زرار التنزيل يتفعّل)
 const WARNS = {
   downloadBtn: () => roleOpt.checked
-    ? ['الأداة بتقص مربع من نص الصورة وبتقرّب 15%، فأطراف الصورة ممكن تتقص، راجع النتيجة قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
+    ? ['الأداة بتقص على الموضوع الأساسي في الصورة، فأطراف الصورة ممكن تتقص، راجع النتيجة قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
     : ['التقريب بيقص الأطراف الفاضية، راجع الحواف وتأكد إن مفيش جزء من الموضوع اتقص.', 'لو الصورة فيها ظل أو توهج خفيف ممكن يتشال مع الخلفية.', 'الصورة الأصلية مش بتتغير، اللي بتنزله نسخة جديدة.'],
   bDownload: () => ['القص بيعتمد على الوضع والتكبير اللي اخترتهم، راجع الجزء الظاهر قبل التنزيل.', 'لو الصورة الأصلية صغيرة، تكبيرها لبانر كبير هيخليها باهتة.'],
   rDownload: () => ['تغيير المقاس بالقص ممكن يقص جزء من الصورة، وبالتمديد ممكن يبوّظ النسب.', 'تكبير صورة صغيرة بيقلل جودتها.'],
@@ -1257,3 +1461,4 @@ Object.keys(WARNS).forEach(id => {
   new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
   sync();
 });
+
