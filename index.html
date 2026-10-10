@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}try{if(!sessionStorage.getItem("sp")&&!matchMedia("(prefers-reduced-motion:reduce)").matches)document.documentElement.classList.add("splash-on")}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صنع نور الدين</title>
 <meta name="description" content="أدوات مجانية لتجهيز الصور: تقريب الحواف وتجهيز أيقونات رولز ديسكورد، بتشتغل جوه متصفحك من غير ما تترفع صورتك.">
@@ -13,274 +13,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#0a0a12; --surface:#11111d; --surface2:#171726; --line:#25253b;
-    --text:#edecf6; --muted:#8e8ea8;
-    --accent:#7468ff; --accent2:#5648f0; --accentSoft:rgba(116,104,255,.14); --accentLine:rgba(116,104,255,.45);
-    --ok:#6ee7b7; --tickerbg:rgba(17,17,29,.7); --dockbg:rgba(10,10,18,.92);
-    --chk1:#1c1c2c; --chkbg:#13131f; --sw:#2b2b44; --glow:rgba(116,104,255,.16);
-    color-scheme:dark;
-  }
-  :root[data-theme=light]{
-    --bg:#f5f5fb; --surface:#ffffff; --surface2:#f0f0fa; --line:#dcdcee;
-    --text:#1a1a2e; --muted:#5f5f7c;
-    --accent:#5b4df0; --accent2:#4638d8; --accentSoft:rgba(91,77,240,.1); --accentLine:rgba(91,77,240,.4);
-    --ok:#0f9d6b; --tickerbg:rgba(255,255,255,.85); --dockbg:rgba(255,255,255,.92);
-    --chk1:#e4e4f1; --chkbg:#f4f4fb; --sw:#c6c6dc; --glow:rgba(91,77,240,.12);
-    color-scheme:light;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth;scroll-padding-top:12px}
-  body{
-    background:var(--bg) radial-gradient(70% 38% at 85% -4%,var(--glow),transparent 70%) no-repeat;
-    color:var(--text); line-height:1.75; -webkit-font-smoothing:antialiased;
-    font-family:"IBM Plex Sans Arabic","Tajawal","Segoe UI",system-ui,sans-serif;
-    padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));
-  }
-  a{color:inherit;text-decoration:none}
-  button{font-family:inherit}
-  svg{display:block}
-
-  /* شريط معلومات متحرك */
-  .ticker{direction:ltr;overflow:hidden;border-bottom:1px solid var(--line);background:var(--tickerbg);
-    padding-top:env(safe-area-inset-top,0px)}
-  .track{display:flex;width:max-content;animation:tick 34s linear infinite}
-  .track span{direction:rtl;display:flex;align-items:center;gap:10px;padding:10px 22px;white-space:nowrap;
-    font-size:13px;color:var(--muted)}
-  .track span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
-  @keyframes tick{to{transform:translateX(-50%)}}
-
-  /* الهيدر */
-  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    max-width:980px;margin:0 auto;padding:18px 20px;border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:14px}
-  .logo{width:54px;height:54px;border-radius:16px;box-shadow:0 8px 24px rgba(86,72,240,.35)}
-  .brand b{display:block;font-size:22px;font-weight:700;line-height:1.2}
-  .brand small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
-  .menu-btn{width:52px;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);
-    color:var(--text);display:grid;place-items:center;cursor:pointer}
-  .menu-btn:hover{border-color:var(--accentLine)}
-  .drawer{display:none;max-width:980px;margin:0 auto;padding:6px 20px 16px;border-bottom:1px solid var(--line)}
-  .drawer.open{display:grid;gap:8px}
-  .drawer a{padding:13px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:500}
-  .drawer a:hover{border-color:var(--accentLine)}
-
-  main{max-width:980px;margin:0 auto;padding:0 20px}
-
-  /* الهيرو */
-  .crumbs{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;padding:30px 0 22px}
-  .crumbs svg{width:16px;height:16px;transform:scaleX(-1)}
-  .crumbs span{color:var(--text)}
-  .eyebrow{color:var(--accent);font-weight:600;font-size:17px}
-  h1{font-size:clamp(32px,8.5vw,46px);line-height:1.25;font-weight:700;margin:10px 0 14px}
-  .lead{color:var(--muted);font-size:17px;max-width:620px}
-
-  /* الكروت */
-  .cards{display:grid;gap:18px;margin-top:38px}
-  .card{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);
-    border-radius:26px;padding:26px 24px;display:flex;flex-direction:column}
-  .card-head{display:flex;gap:16px;align-items:flex-start}
-  .tile{width:66px;height:66px;border-radius:18px;background:var(--accentSoft);border:1px solid var(--accentLine);
-    display:grid;place-items:center;color:var(--accent);flex-shrink:0}
-  .card h3{font-size:22px;font-weight:700;line-height:1.3}
-  .badge{display:inline-block;margin-top:8px;padding:3px 14px;border-radius:999px;font-size:14px;font-weight:600;
-    color:var(--accent);background:var(--accentSoft);border:1px solid var(--accentLine)}
-  .card p.desc{color:var(--muted);margin-top:16px;font-size:16px}
-  .card hr{border:0;border-top:1px solid var(--line);margin:20px 0}
-  .feats{list-style:none;display:grid;gap:12px;margin-bottom:22px}
-  .feats li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
-  .feats svg{width:20px;height:20px;color:var(--ok);flex-shrink:0;margin-top:3px}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;
-    padding:14px 24px;border-radius:14px;font-size:16px;font-weight:600;color:#fff;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 26px rgba(86,72,240,.35);
-    transition:transform .15s,box-shadow .15s}
-  .btn:hover{transform:translateY(-1px)}
-  .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
-  .btn.ghost{background:var(--surface2);border:1px solid var(--line);box-shadow:none;color:var(--text)}
-  .card .btn{margin-top:auto}
-
-  /* منطقة الشغل */
-  section{margin-top:64px}
-  .sec-head h2{font-size:clamp(24px,6vw,32px);line-height:1.3;font-weight:700}
-  .sec-head p{color:var(--muted);margin-top:6px}
-  .panel{margin-top:22px;background:linear-gradient(180deg,var(--surface2),var(--surface));
-    border:1px solid var(--line);border-radius:26px;padding:22px}
-  #drop,#bDrop{border:1.5px dashed var(--accentLine);border-radius:20px;padding:36px 16px;text-align:center;cursor:pointer;
-    transition:.2s;background:rgba(116,104,255,.04)}
-  #drop:hover,#drop.drag,#bDrop:hover,#bDrop.drag{background:var(--accentSoft);border-color:var(--accent)}
-  #drop .up,#bDrop .up{width:56px;height:56px;margin:0 auto 12px;border-radius:16px;background:var(--accentSoft);
-    display:grid;place-items:center;color:var(--accent)}
-  #drop p,#bDrop p{font-size:18px;font-weight:600}
-  #drop span,#bDrop span{color:var(--muted);font-size:14px}
-  #fileInput,#bInput{display:none}
-  .opts{display:grid;gap:10px;margin-top:18px}
-  .opts label{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;cursor:pointer;
-    background:var(--bg);border:1px solid var(--line);font-size:15px;font-weight:600;transition:border-color .2s,background .2s}
-  .opts label small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:2px}
-  .opts .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
-    background:var(--surface2);border:1px solid var(--line);color:var(--accent)}
-  .opts .ic svg{width:22px;height:22px}
-  .opts .tx{flex:1;min-width:0;line-height:1.5}
-  .opts .sw{position:relative;width:46px;height:26px;border-radius:99px;background:var(--sw);flex-shrink:0;transition:background .2s}
-  .opts .sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;
-    background:#fff;transition:transform .2s}
-  .opts input{position:absolute;opacity:0;pointer-events:none}
-  .opts input:checked ~ .sw{background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .opts input:checked ~ .sw::after{transform:translateX(-20px)}
-  [dir=ltr] .opts input:checked ~ .sw::after{transform:translateX(20px)}
-  .opts label:has(input:checked){border-color:var(--accentLine);background:var(--accentSoft)}
-  .opts input:focus-visible ~ .sw{outline:2px solid var(--accent);outline-offset:3px}
-  .opts label:has(input:disabled){opacity:.6;cursor:default}
-  .row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:20px}
-  .box{flex:1;min-width:140px;text-align:center}
-  .box h3{margin-bottom:10px;color:var(--muted);font-size:14px;font-weight:500}
-  .frame{display:inline-block;max-width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);
-    background:
-      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%),
-      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%);
-    background-size:16px 16px;background-position:0 0,8px 8px;background-color:var(--chkbg)}
-  .frame img,.frame canvas{display:block;max-width:100%;max-height:260px}
-  .dims{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
-  .actions{display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap}
-
-  /* خطوات */
-  .steps{display:grid;gap:14px;margin-top:22px}
-  .step{display:flex;gap:16px;align-items:flex-start;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--surface)}
-  .step .n{width:42px;height:42px;border-radius:12px;background:var(--accentSoft);border:1px solid var(--accentLine);
-    color:var(--accent);display:grid;place-items:center;font-weight:700;flex-shrink:0}
-  .step b{display:block;font-size:17px}
-  .step p{color:var(--muted);font-size:15px}
-
-  /* أسئلة */
-  details{border:1px solid var(--line);border-radius:18px;background:var(--surface);margin-top:12px;padding:0 20px}
-  summary{cursor:pointer;list-style:none;padding:18px 0;font-weight:600;display:flex;justify-content:space-between;gap:12px}
-  summary::-webkit-details-marker{display:none}
-  summary::after{content:"+";color:var(--accent);font-size:22px;line-height:1}
-  details[open] summary::after{content:"−"}
-  details p{color:var(--muted);padding:0 0 18px;font-size:15px}
-
-  footer{max-width:980px;margin:70px auto 0;padding:24px 20px;border-top:1px solid var(--line);
-    text-align:center;color:var(--muted);font-size:14px}
-  footer b{color:var(--text)}
-
-  /* شريط التنقل السفلي */
-  .dock{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;justify-content:space-around;
-    background:var(--dockbg);backdrop-filter:blur(14px);border-top:1px solid var(--line);
-    padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
-  .dock a{display:grid;justify-items:center;gap:2px;padding:6px 18px;color:var(--muted);font-size:11px;border-radius:12px}
-  .dock a:hover,.dock a:focus-visible{color:var(--text);background:var(--surface)}
-  .dock svg{width:24px;height:24px}
-
-
-  /* أزرار الهيدر */
-  .hbtns{display:flex;gap:10px}
-  .theme-ic{display:none}
-  :root[data-theme=light] .theme-ic.sun{display:block}
-  :root:not([data-theme=light]) .theme-ic.moon{display:block}
-
-  /* صور الكروت */
-  .thumb{height:132px;border-radius:18px;margin-bottom:20px;border:1px solid var(--line);overflow:hidden;
-    background:radial-gradient(90% 120% at 20% 0%,var(--accentSoft),transparent 70%),var(--surface);
-    display:grid;place-items:center;color:var(--accent)}
-  .thumb svg{width:100%;height:100%}
-  .cards{grid-template-columns:1fr}
-  .card .cap{margin-top:12px;font-size:14px;color:var(--accent);font-weight:600;text-align:center}
-
-  /* مقارنة قبل وبعد */
-  .compare{display:none;flex-direction:column;align-items:center;margin-top:22px}
-  .stage{position:relative;width:100%;max-width:440px;aspect-ratio:1/1;border-radius:20px;overflow:hidden;direction:ltr;
-    border:1px solid var(--line);touch-action:pan-y;user-select:none;
-    background:linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%),
-      linear-gradient(45deg,var(--chk1) 25%,transparent 25%,transparent 75%,var(--chk1) 75%);
-    background-size:16px 16px;background-position:0 0,8px 8px;background-color:var(--chkbg)}
-  .stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;max-height:none;max-width:none}
-  .stage .bef{clip-path:inset(0 50% 0 0);background:var(--chkbg)}
-  .stage .tag{position:absolute;top:12px;padding:3px 12px;border-radius:99px;font-size:13px;font-weight:600;
-    background:rgba(10,10,18,.72);color:#fff;pointer-events:none;z-index:2}
-  .stage .tag.l{left:12px}.stage .tag.r{right:12px}
-  .stage .bar{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:#fff;z-index:3;pointer-events:none;
-    box-shadow:0 0 0 1px rgba(0,0,0,.25)}
-  .stage .bar::after{content:"";position:absolute;top:50%;left:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;
-    background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center/22px no-repeat;
-    border:2px solid #fff}
-  .stage input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:4;margin:0}
-  .hint{color:var(--muted);font-size:13px;margin-top:10px}
-
-  /* معاينة الرول */
-  .rprev{display:none;margin-top:20px;border:1px solid var(--line);border-radius:20px;padding:18px;background:#313338;color:#f2f3f5;direction:rtl}
-  .rprev h4{font-size:14px;font-weight:600;color:#b5bac1;margin-bottom:14px}
-  .rprev .line{display:flex;align-items:center;gap:12px;padding:6px 0}
-  .rprev canvas{background:#2b2d31;flex-shrink:0;border-radius:50%}
-  .rprev .nm{font-weight:600}
-  .rprev .nm small{display:block;color:#b5bac1;font-weight:400;font-size:12px}
-  .rprev .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:8px;background:#1e1f22;font-size:13px;font-weight:600;color:#f2f3f5}
-  .rprev .pill canvas{width:18px;height:18px;border-radius:50%;background:transparent}
-
-  /* البانر */
-  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-  .chip{border:1px solid var(--line);background:var(--bg);color:var(--text);padding:10px 16px;border-radius:14px;cursor:pointer;
-    font-size:14px;font-weight:600;font-family:inherit;line-height:1.4;text-align:start}
-  .chip small{display:block;color:var(--muted);font-weight:400;font-size:12px}
-  .chip[aria-pressed=true]{border-color:var(--accent);background:var(--accentSoft)}
-  .lbl{margin-top:20px;font-weight:600;font-size:15px}
-  .rng{display:flex;align-items:center;gap:14px;margin-top:10px}
-  .rng input{flex:1;accent-color:var(--accent)}
-  .rng output{min-width:46px;text-align:center;color:var(--muted);font-size:14px}
-  .bwrap{margin-top:22px;display:none;justify-content:center}
-  .bwrap canvas{max-width:100%;height:auto;border-radius:16px;border:1px solid var(--line)}
-  input[type=color]{width:44px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:3px;cursor:pointer}
-
-  /* تواصل */
-  .contact{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:22px;border:1px solid var(--line);border-radius:24px;
-    background:linear-gradient(180deg,var(--surface2),var(--surface));margin-top:22px}
-  .contact .tile{width:58px;height:58px;border-radius:16px;background:#5865f2;border-color:transparent;color:#fff}
-  .contact .who{flex:1;min-width:180px}
-  .contact .who b{display:block;font-size:18px}
-  .contact .who span{color:var(--muted);font-size:14px}
-  .user{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:14px;cursor:pointer;
-    background:var(--bg);border:1px solid var(--line);color:var(--text);font:600 16px/1 inherit;font-family:inherit;direction:ltr}
-  .user:hover{border-color:var(--accent)}
-  .user svg{width:20px;height:20px;color:#5865f2}
-  .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;
-    background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:14px;font-weight:600;z-index:50;
-    pointer-events:none;transition:.25s}
-  .toast.show{opacity:1;transform:translate(-50%,0)}
-
-  @media(min-width:760px){
-    .cards{grid-template-columns:repeat(3,1fr)}
-    .steps{grid-template-columns:repeat(3,1fr)}
-    .step{flex-direction:column}
-    .opts{grid-template-columns:1fr 1fr}
-    .dock{display:none}
-    body{padding-bottom:0}
-  }
-
-
-  /* حركات الأزرار */
-  .menu-btn{transition:transform .15s,border-color .2s,background .2s}
-  .menu-btn:active{transform:scale(.88)}
-  .burger path{transition:transform .35s cubic-bezier(.5,1.6,.4,1),opacity .2s;transform-origin:12px 12px;transform-box:view-box}
-  #menuBtn[aria-expanded=true]{background:var(--accentSoft);border-color:var(--accent)}
-  #menuBtn[aria-expanded=true] .b1{transform:translateY(5px) rotate(45deg)}
-  #menuBtn[aria-expanded=true] .b2{opacity:0;transform:scaleX(0)}
-  #menuBtn[aria-expanded=true] .b3{transform:translateY(-5px) rotate(-45deg)}
-  .drawer.open{animation:dIn .35s cubic-bezier(.2,.8,.2,1)}
-  .drawer.open a{animation:aIn .4s cubic-bezier(.2,.8,.2,1) backwards}
-  .drawer.open a:nth-child(1){animation-delay:.04s}.drawer.open a:nth-child(2){animation-delay:.08s}
-  .drawer.open a:nth-child(3){animation-delay:.12s}.drawer.open a:nth-child(4){animation-delay:.16s}
-  .drawer.open a:nth-child(5){animation-delay:.2s}.drawer.open a:nth-child(6){animation-delay:.24s}
-  @keyframes dIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
-  @keyframes aIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
-  #themeBtn svg{transition:transform .5s cubic-bezier(.3,1.5,.4,1)}
-  #themeBtn.spin svg{animation:spinIn .55s cubic-bezier(.3,1.4,.4,1)}
-  @keyframes spinIn{0%{transform:rotate(-200deg) scale(.3);opacity:0}100%{transform:none;opacity:1}}
-  html.theme-anim,html.theme-anim *{transition:background-color .45s,color .45s,border-color .45s !important}
-  @media(prefers-reduced-motion:reduce){.burger path,#themeBtn svg,.drawer.open,.drawer.open a{transition:none !important;animation:none !important}.track{animation:none}html{scroll-behavior:auto}.btn{transition:none}}
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body id="top">
+
+<div id="splash" aria-hidden="true">
+  <div class="sbox">
+    <svg class="slogo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b80ff"/><stop offset="1" stop-color="#4a3ce0"/></linearGradient><radialGradient id="sr" cx=".3" cy=".2" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="64" height="64" rx="18" fill="url(#sg)"/><rect width="64" height="64" rx="18" fill="url(#sr)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 26V19a2 2 0 0 1 2-2h7"/><path d="M38 17h7a2 2 0 0 1 2 2v7"/><path d="M47 38v7a2 2 0 0 1-2 2h-7"/><path d="M26 47h-7a2 2 0 0 1-2-2v-7"/></g><path d="M32 22c1.2 6.2 3.8 8.8 10 10-6.2 1.2-8.8 3.8-10 10-1.2-6.2-3.8-8.8-10-10 6.2-1.2 8.8-3.8 10-10z" fill="#fff"/></svg>
+    <b>نور الدين</b>
+    <small>أدوات الصور</small>
+    <div class="sbar"><i></i></div>
+  </div>
+</div>
 
 <div class="ticker" aria-hidden="true">
   <div class="track">
@@ -303,25 +47,34 @@
 </header>
 <nav class="drawer" id="drawer" aria-label="القائمة الرئيسية">
   <a href="#tools">الأدوات</a>
-  <a href="#workspace">ارفع صورتك</a>
-  <a href="#banner">صورة لبانر</a>
+  <a href="#/trim">ارفع صورتك</a>
+  <a href="#/banner">صورة لبانر</a>
+  <a href="#/resize">تغيير المقاس</a>
+  <a href="#/compress">تصغير الحجم</a>
+  <a href="#/enhance">تحسين الجودة</a>
+  <a href="#/adjust">ضبط الألوان</a>
+  <a href="#/blur">طمس أجزاء</a>
+  <a href="#guides">شروحات</a>
+  <a href="#updates">التحديثات</a>
+  <button type="button" data-act="install">ثبّت التطبيق</button>
+  <button type="button" data-act="share">شارك الموقع</button>
   <a href="#contact">تواصل معايا</a>
   <a href="#how">إزاي بيشتغل</a>
   <a href="#faq">الأسئلة الشائعة</a>
 </nav>
 
 <main>
-  <nav class="crumbs" aria-label="مسار الصفحة">
+  <nav class="crumbs home" aria-label="مسار الصفحة">
     <a href="#top">الرئيسية</a>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     <span>الأدوات</span>
   </nav>
 
-  <p class="eyebrow">الأدوات</p>
-  <h1>اختار الأداة اللي محتاجها</h1>
-  <p class="lead">كل أداة بتشتغل جوه متصفحك مباشرة، وصورتك مش بتتحفظ ولا بتترفع في أي مكان. جرّب وشوف النتيجة قبل ما تنزّلها.</p>
+  <p class="eyebrow home">الأدوات</p>
+  <h1 class="home">اختار الأداة اللي محتاجها</h1>
+  <p class="lead home">كل أداة بتشتغل جوه متصفحك مباشرة، وصورتك مش بتتحفظ ولا بتترفع في أي مكان. جرّب وشوف النتيجة قبل ما تنزّلها.</p>
 
-  <div class="cards" id="tools">
+  <div class="cards home" id="tools">
     <article class="card">
 <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="70" y="14" width="160" height="104" rx="10" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="5 5"/><rect x="104" y="30" width="92" height="72" rx="8" fill="currentColor" opacity=".25"/><path d="M150 44c1.5 8 5 11.5 13 13-8 1.5-11.5 5-13 13-1.5-8-5-11.5-13-13 8-1.5 11.5-5 13-13z" fill="currentColor"/><g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M92 40V32a4 4 0 0 1 4-4h8"/><path d="M196 28h8a4 4 0 0 1 4 4v8"/><path d="M208 92v8a4 4 0 0 1-4 4h-8"/><path d="M104 104h-8a4 4 0 0 1-4-4v-8"/></g></svg></div>
       <div class="card-head">
@@ -369,9 +122,68 @@
       <button class="btn" type="button" data-mode="banner">اعمل بانر</button>
       <p class="cap">صورة مربعة ← بانر</p>
     </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="40" y="30" width="70" height="70" rx="10" fill="currentColor" opacity=".25" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M126 48l16 18-16 18"/><path d="M124 66h18" /></g><rect x="158" y="44" width="110" height="42" rx="8" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M158 100h110M158 104v-8M268 104v-8" opacity=".6"/><path d="M280 44v42M276 44h8M276 86h8" opacity=".6"/></g><text x="213" y="70" fill="currentColor" font-size="14" font-weight="700" text-anchor="middle" font-family="sans-serif">512×256</text></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7"/></svg></div>
+        <div><h3>تغيير المقاس</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">غيّر مقاس أي صورة لمقاس جاهز (أفاتار، إيموجي، ستيكر، أيقونة سيرفر) أو مقاس تكتبه بنفسك.</p>
+      <hr>
+      <ul class="feats">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>مقاسات ديسكورد الجاهزة</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>مقاس مخصص بالبكسل</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بيعرض حجم الملف وبينبّهك لو كبير</li>
+      </ul>
+      <button class="btn" type="button" data-mode="resize">غيّر المقاس</button>
+    </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="36" y="22" width="88" height="88" rx="12" fill="currentColor" opacity=".28" stroke="currentColor" stroke-width="2"/><text x="80" y="72" fill="currentColor" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">2.4 MB</text><path d="M140 66h30M160 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="190" y="44" width="46" height="46" rx="8" fill="currentColor" opacity=".28" stroke="currentColor" stroke-width="2"/><text x="213" y="72" fill="currentColor" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">240 KB</text><rect x="244" y="52" width="40" height="22" rx="11" fill="currentColor" opacity=".9"/><text x="264" y="68" fill="#fff" font-size="12" font-weight="700" text-anchor="middle" font-family="sans-serif">-90%</text></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg></div>
+        <div><h3>تصغير الحجم وتغيير الصيغة</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">قلّل حجم الصورة وحوّلها بين JPG وWebP وPNG، مع تحكم في الجودة ومعاينة للحجم قبل التنزيل.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تحويل بين JPG وWebP وPNG</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شريط جودة وتصغير للأبعاد</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بيقولك وفّرت كام من الحجم</li></ul>
+      <button class="btn" type="button" data-mode="compress">صغّر الصورة</button>
+    </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><defs><filter id="bl"><feGaussianBlur stdDeviation="3"/></filter></defs><g filter="url(#bl)"><rect x="40" y="38" width="56" height="56" rx="10" fill="currentColor" opacity=".35"/><path d="M68 52c1.4 7 4.6 10.2 11.6 11.6-7 1.4-10.2 4.6-11.6 11.6-1.4-7-4.6-10.2-11.6-11.6 7-1.4 10.2-4.6 11.6-11.6z" fill="currentColor"/></g><path d="M118 66h30M138 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="170" y="18" width="100" height="100" rx="14" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2.5"/><path d="M220 44c2.6 13 8.6 19 21.6 21.6-13 2.6-19 8.6-21.6 21.6-2.6-13-8.6-19-21.6-21.6 13-2.6 19-8.6 21.6-21.6z" fill="currentColor"/><text x="252" y="108" fill="currentColor" font-size="14" font-weight="700" text-anchor="middle" font-family="sans-serif">×4</text></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg></div>
+        <div><h3>تحسين جودة الصورة</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">كبّر الصورة ×2 أو ×3 أو ×4 وزوّد حدتها وتفاصيلها، مع تحسين اختياري للألوان والتباين.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تكبير بجودة عالية</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شريط للتحكم في الحدة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>معاينة بتقريب لحد ما تشوف التفاصيل</li></ul>
+      <button class="btn" type="button" data-mode="enhance">حسّن الصورة</button>
+    </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M50 36h200M50 66h200M50 96h200" opacity=".35"/><path d="M50 36h110M50 66h70M50 96h140"/></g><circle cx="160" cy="36" r="10" fill="currentColor"/><circle cx="120" cy="66" r="10" fill="currentColor"/><circle cx="190" cy="96" r="10" fill="currentColor"/><circle cx="262" cy="36" r="8" fill="#fbbf24" opacity=".9"/><circle cx="262" cy="66" r="8" fill="#6ee7b7" opacity=".9"/><circle cx="262" cy="96" r="8" fill="#fb7185" opacity=".9"/></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+        <div><h3>ضبط الألوان</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">عدّل سطوع الصورة وتباينها وتشبّع ألوانها ودفء لونها، وشوف النتيجة مباشرة وإنت بتحرك الشرائط.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>سطوع وتباين وتشبّع ودفء</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>معاينة فورية</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>اضغط مطوّلاً لمشاهدة الأصلية</li></ul>
+      <button class="btn" type="button" data-mode="adjust">اضبط الألوان</button>
+    </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="70" y="14" width="160" height="104" rx="12" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><circle cx="118" cy="48" r="16" fill="currentColor" opacity=".45"/><path d="M82 108c10-28 36-34 62-34s40 8 52 34z" fill="currentColor" opacity=".35"/><g fill="currentColor"><rect x="150" y="38" width="12" height="12" opacity=".9"/><rect x="162" y="38" width="12" height="12" opacity=".5"/><rect x="174" y="38" width="12" height="12" opacity=".8"/><rect x="150" y="50" width="12" height="12" opacity=".4"/><rect x="162" y="50" width="12" height="12" opacity=".85"/><rect x="174" y="50" width="12" height="12" opacity=".55"/><rect x="150" y="62" width="12" height="12" opacity=".7"/><rect x="162" y="62" width="12" height="12" opacity=".45"/><rect x="174" y="62" width="12" height="12" opacity=".9"/></g><rect x="144" y="32" width="48" height="48" rx="3" stroke="currentColor" stroke-width="2.5" stroke-dasharray="6 5"/></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="3 3"/><path d="M8 8h3v3H8zM13 13h3v3h-3z"/></svg></div>
+        <div><h3>طمس أجزاء من الصورة</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">اسحب على أي جزء في الصورة عشان تطمسه أو تبكسله أو تغطيه، لإخفاء وجه أو اسم أو رقم قبل النشر.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>طمس وبكسلة وتغطية سوداء</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تحدد أكتر من منطقة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تراجع ومسح بضغطة</li></ul>
+      <button class="btn" type="button" data-mode="blur">اطمس جزء</button>
+    </article>
   </div>
 
-  <section id="workspace">
+  <section id="workspace" class="view">
     <div class="sec-head">
       <h2>ارفع صورتك</h2>
       <p>اختار الوضع من الخيارات تحت، والنتيجة بتظهر قدامك فورًا.</p>
@@ -401,6 +213,8 @@
           <img id="beforeImg" class="bef" alt="الصورة قبل المعالجة">
           <span class="tag l">قبل</span><span class="tag r">بعد</span>
           <div class="bar" id="bar"></div>
+          <canvas id="edgeCv" class="edge"></canvas>
+          <div class="busy" id="busy"></div>
           <input type="range" id="cmp" min="0" max="100" value="50" aria-label="مقارنة قبل وبعد">
         </div>
         <p class="hint">اسحب الشريط عشان تقارن قبل وبعد</p>
@@ -420,7 +234,7 @@
     </div>
   </section>
 
-  <section id="banner">
+  <section id="banner" class="view">
     <div class="sec-head">
       <h2>صورة مربعة لبانر</h2>
       <p>ارفع صورتك المربعة واختار المقاس، والبانر بيتجهّز قدامك.</p>
@@ -466,7 +280,7 @@
       <div class="rng"><input type="range" id="bScale" min="40" max="100" value="82"><output id="bScaleOut">82%</output></div>
       </div>
 
-      <div class="bwrap" id="bWrap"><canvas id="bCanvas"></canvas></div>
+      <div class="bwrap" id="bWrap"><canvas id="bCanvas"></canvas><div class="busy" id="bBusy"></div></div>
       <div class="dims" id="bDims"></div>
       <div class="actions">
         <button class="btn" id="bDownload" type="button" disabled>تنزيل البانر</button>
@@ -474,7 +288,285 @@
     </div>
   </section>
 
-  <section id="contact">
+  <section id="resize" class="view">
+    <div class="sec-head">
+      <h2>تغيير المقاس</h2>
+      <p>اختار المقاس وارفع صورتك، والنتيجة بتتجهّز قدامك.</p>
+    </div>
+    <div class="panel">
+      <div id="rDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="rInput" accept="image/*">
+      </div>
+
+      <p class="lbl">المقاس</p>
+      <div class="chips" id="rSizes">
+        <button class="chip" type="button" data-w="256" data-h="256" aria-pressed="true">أفاتار<small dir="ltr">256×256</small></button>
+        <button class="chip" type="button" data-w="128" data-h="128" data-limit="256" aria-pressed="false">إيموجي ديسكورد<small dir="ltr">128×128</small></button>
+        <button class="chip" type="button" data-w="320" data-h="320" data-limit="512" aria-pressed="false">ستيكر ديسكورد<small dir="ltr">320×320</small></button>
+        <button class="chip" type="button" data-w="512" data-h="512" aria-pressed="false">أيقونة سيرفر<small dir="ltr">512×512</small></button>
+        <button class="chip" type="button" data-w="0" data-h="0" aria-pressed="false">مقاس مخصص<small>اكتبه بنفسك</small></button>
+      </div>
+      <div class="fields" id="rFields">
+        <input type="number" id="rWd" min="16" max="4096" value="512" aria-label="العرض">
+        <span>×</span>
+        <input type="number" id="rH" min="16" max="4096" value="512" aria-label="الارتفاع">
+      </div>
+
+      <p class="lbl">طريقة الملء</p>
+      <div class="chips" id="rFit">
+        <button class="chip" type="button" data-fit="cover" aria-pressed="true">تملا المقاس<small>الزيادة بتتقص</small></button>
+        <button class="chip" type="button" data-fit="contain" aria-pressed="false">الصورة كاملة<small>وحواليها شفاف</small></button>
+        <button class="chip" type="button" data-fit="stretch" aria-pressed="false">تمديد<small>بيغيّر النسبة</small></button>
+      </div>
+
+      <div id="rWrap"><canvas id="rCanvas"></canvas><div class="busy" id="rBusy"></div></div>
+      <div class="dims" id="rDims"></div>
+      <div class="sizeinfo" id="rInfo"></div>
+      <div class="actions">
+        <button class="btn" id="rDownload" type="button" disabled>تنزيل الصورة</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="compress" class="view">
+    <div class="sec-head"><h2>تصغير الحجم وتغيير الصيغة</h2><p>اختار الصيغة والجودة، وشوف الحجم الجديد قبل التنزيل.</p></div>
+    <div class="panel">
+      <div id="cDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="cInput" accept="image/*">
+      </div>
+      <p class="lbl">الصيغة</p>
+      <div class="chips" id="cFmt">
+        <button class="chip" type="button" data-t="image/jpeg" aria-pressed="true">JPG<small>أصغر حجم، من غير شفافية</small></button>
+        <button class="chip" type="button" data-t="image/webp" aria-pressed="false">WebP<small>حجم صغير مع شفافية</small></button>
+        <button class="chip" type="button" data-t="image/png" aria-pressed="false">PNG<small>جودة كاملة وشفافية</small></button>
+      </div>
+      <div id="cQBox">
+        <p class="lbl">الجودة</p>
+        <div class="rng"><input type="range" id="cQ" min="10" max="100" value="80" aria-label="الجودة"><output id="cQOut">80%</output></div>
+      </div>
+      <p class="lbl">أبعاد الصورة</p>
+      <div class="chips" id="cScale">
+        <button class="chip" type="button" data-k="1" aria-pressed="true">الأصلية</button>
+        <button class="chip" type="button" data-k=".75" aria-pressed="false">75%</button>
+        <button class="chip" type="button" data-k=".5" aria-pressed="false">50%</button>
+        <button class="chip" type="button" data-k=".25" aria-pressed="false">25%</button>
+      </div>
+      <div id="cWrap"><canvas id="cCanvas"></canvas><div class="busy" id="cBusy"></div></div>
+      <div class="stats" id="cStats">
+        <div><small>قبل</small><b id="cBefore">-</b></div>
+        <div><small>بعد</small><b id="cAfter">-</b></div>
+        <div class="save" id="cSaveBox"><small>التوفير</small><b id="cSave">-</b></div>
+      </div>
+      <div class="dims" id="cDims"></div>
+      <div class="actions"><button class="btn" id="cDownload" type="button" disabled>تنزيل الصورة</button></div>
+    </div>
+  </section>
+
+  <section id="enhance" class="view">
+    <div class="sec-head"><h2>تحسين جودة الصورة</h2><p>كبّر الصورة وزوّد حدتها، وقارن قبل وبعد بتقريب.</p></div>
+    <div class="panel">
+      <div id="eDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="eInput" accept="image/*">
+      </div>
+      <p class="lbl">التكبير</p>
+      <div class="chips" id="eScale">
+        <button class="chip" type="button" data-k="2" aria-pressed="true">×2</button>
+        <button class="chip" type="button" data-k="3" aria-pressed="false">×3</button>
+        <button class="chip" type="button" data-k="4" aria-pressed="false">×4</button>
+      </div>
+      <p class="lbl">الحدة</p>
+      <div class="rng"><span class="hint" style="margin:0">أقل</span><input type="range" id="eSharp" min="0" max="100" value="55" aria-label="الحدة"><span class="hint" style="margin:0">أكتر</span><output id="eSharpOut">55</output></div>
+      <div class="opts" style="margin-top:16px">
+        <label><input type="checkbox" id="eColor"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 12h9" opacity=".6"/></svg></span><span class="tx">تحسين الألوان والتباين<small>ألوان أحيا وتفاصيل أوضح</small></span><span class="sw"></span></label>
+      </div>
+      <div id="eWrap">
+        <div class="stage" id="eStage">
+          <div class="zm" id="eZm"><canvas id="eAft"></canvas><img id="eBef" class="bef" alt="الصورة الأصلية"></div>
+          <span class="tag l">قبل</span><span class="tag r">بعد</span>
+          <div class="bar" id="eBar"></div>
+          <div class="busy" id="eBusy"></div>
+          <input type="range" id="eCmp" min="0" max="100" value="50" aria-label="مقارنة قبل وبعد">
+        </div>
+        <div class="chips" id="eZoom" style="justify-content:center">
+          <button class="chip" type="button" data-z="1" aria-pressed="true">عرض كامل</button>
+          <button class="chip" type="button" data-z="3" aria-pressed="false">تقريب ×3</button>
+        </div>
+        <p class="hint" id="eHint">اسحب الشريط عشان تقارن قبل وبعد</p>
+      </div>
+      <div class="dims" id="eDims"></div>
+      <div class="sizeinfo" id="eInfo"></div>
+      <p class="hint" style="text-align:center;margin-top:10px">التحسين بيزوّد الحدة والتفاصيل الظاهرة، لكنه مبيرسمش تفاصيل مش موجودة في الصورة الأصلية.</p>
+      <div class="actions"><button class="btn" id="eDownload" type="button" disabled>تنزيل الصورة</button></div>
+    </div>
+  </section>
+
+  <section id="adjust" class="view">
+    <div class="sec-head"><h2>ضبط الألوان</h2><p>حرّك الشرائط وشوف النتيجة قدامك فورًا.</p></div>
+    <div class="panel">
+      <div id="adDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="adInput" accept="image/*">
+      </div>
+      <div class="ed" id="adWrap"><div class="holder"><canvas class="main" id="adCanvas"></canvas><div class="busy" id="adBusy"></div></div></div>
+      <div id="adTools" style="display:none">
+        <button class="btn ghost holdbtn" id="adHold" type="button">اضغط مطوّلاً لمشاهدة الأصلية</button>
+        <div class="sl-row"><div class="top"><span>السطوع</span><output id="adBOut">0</output></div><input type="range" id="adB" min="-100" max="100" value="0" aria-label="السطوع"></div>
+        <div class="sl-row"><div class="top"><span>التباين</span><output id="adCOut">0</output></div><input type="range" id="adC" min="-100" max="100" value="0" aria-label="التباين"></div>
+        <div class="sl-row"><div class="top"><span>التشبّع</span><output id="adSOut">0</output></div><input type="range" id="adS" min="-100" max="100" value="0" aria-label="التشبّع"></div>
+        <div class="sl-row"><div class="top"><span>دفء اللون (أبرد ← أدفأ)</span><output id="adWOut">0</output></div><input type="range" id="adW" min="-100" max="100" value="0" aria-label="دفء اللون (أبرد ← أدفأ)"></div>
+      </div>
+      <div class="dims" id="adDims"></div>
+      <div class="actions">
+        <button class="btn ghost" id="adReset" type="button" style="display:none">إعادة ضبط</button>
+        <button class="btn" id="adDownload" type="button" disabled>تنزيل الصورة</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="blur" class="view">
+    <div class="sec-head"><h2>طمس أجزاء من الصورة</h2><p>اسحب على الجزء اللي عايز تخفيه، وتقدر تحدد أكتر من منطقة.</p></div>
+    <div class="panel">
+      <div id="xDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الصورة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="xInput" accept="image/*">
+      </div>
+      <p class="lbl">نوع الإخفاء</p>
+      <div class="chips" id="xMode">
+        <button class="chip" type="button" data-m="pixel" aria-pressed="true">بكسلة<small>الأكثر أمانًا للإخفاء</small></button>
+        <button class="chip" type="button" data-m="blur" aria-pressed="false">طمس<small>تغبيش ناعم</small></button>
+        <button class="chip" type="button" data-m="black" aria-pressed="false">تغطية سوداء<small>إخفاء كامل</small></button>
+      </div>
+      <div id="xStrBox">
+        <div class="sl-row"><div class="top"><span>القوة</span><output id="xStrOut">60</output></div><input type="range" id="xStr" min="5" max="100" value="60" aria-label="القوة"></div>
+      </div>
+      <div class="ed" id="xWrap"><div class="holder"><canvas class="main" id="xCanvas"></canvas><canvas class="over" id="xOver"></canvas><div class="busy" id="xBusy"></div></div></div>
+      <p class="hint" style="text-align:center" id="xHint">اسحب بإصبعك على الصورة عشان تحدد المنطقة</p>
+      <div class="xcount" id="xCount"></div>
+      <p class="hint" style="text-align:center;margin-top:8px">للإخفاء الآمن لبيانات حساسة استخدم "بكسلة" بقوة عالية أو "تغطية سوداء". الطمس الخفيف ممكن يبقى مقروء.</p>
+      <div class="actions">
+        <button class="btn ghost" id="xUndo" type="button" disabled>تراجع</button>
+        <button class="btn ghost" id="xClear" type="button" disabled>مسح الكل</button>
+        <button class="btn" id="xDownload" type="button" disabled>تنزيل الصورة</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="guides" class="home">
+    <div class="sec-head"><h2>شروحات سريعة</h2><p>طريقة استخدام كل أداة في 3 خطوات.</p></div>
+    <div class="guides">
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="70" y="14" width="160" height="104" rx="10" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="5 5"/><rect x="104" y="30" width="92" height="72" rx="8" fill="currentColor" opacity=".25"/><path d="M150 44c1.5 8 5 11.5 13 13-8 1.5-11.5 5-13 13-1.5-8-5-11.5-13-13 8-1.5 11.5-5 13-13z" fill="currentColor"/><g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M92 40V32a4 4 0 0 1 4-4h8"/><path d="M196 28h8a4 4 0 0 1 4 4v8"/><path d="M208 92v8a4 4 0 0 1-4 4h-8"/><path d="M104 104h-8a4 4 0 0 1-4-4v-8"/></g></svg></div>
+        <div class="gb"><h3>تقريب الحواف</h3><ol>
+          <li><span><b>ارفع صورتك</b> من الجهاز أو اسحبها على المربع.</span></li>
+          <li><span><b>فعّل "اجعلها مربعة"</b> لو عايزها مربعة بعد القص.</span></li>
+          <li><span><b>نزّل النتيجة</b> PNG والخلفية الشفافة محفوظة.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><circle cx="82" cy="66" r="42" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M82 40c2.4 14 9 20.6 23 23-14 2.4-20.6 9-23 23-2.4-14-9-20.6-23-23 14-2.4 20.6-9 23-23z" fill="currentColor"/><circle cx="170" cy="66" r="24" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M170 52c1.4 8 5 11.6 13 13-8 1.4-11.6 5-13 13-1.4-8-5-11.6-13-13 8-1.4 11.6-5 13-13z" fill="currentColor"/><circle cx="228" cy="66" r="13" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M228 58c.8 4.6 2.8 6.6 7.6 7.4-4.8.8-6.8 2.8-7.6 7.6-.8-4.8-2.8-6.8-7.6-7.6 4.8-.8 6.8-2.8 7.6-7.4z" fill="currentColor"/><rect x="258" y="58" width="26" height="16" rx="8" fill="currentColor" opacity=".18"/></svg></div>
+        <div class="gb"><h3>أيقونة رول ديسكورد</h3><ol>
+          <li><span><b>فعّل "شكل يناسب رولز ديسكورد"</b> قبل رفع الصورة.</span></li>
+          <li><span><b>اظبط حساسية الخلفية</b> لو فضل جزء منها أو الموضوع اتأكل.</span></li>
+          <li><span><b>شوف المعاينة</b> بالأحجام الصغيرة ونزّل 256×256.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="30" y="34" width="64" height="64" rx="10" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2"/><path d="M112 66h30M132 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="156" y="26" width="116" height="80" rx="10" fill="currentColor" opacity=".1" stroke="currentColor" stroke-opacity=".4"/><rect x="190" y="36" width="48" height="60" rx="8" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2"/><path d="M214 56c1.2 6 4 8.8 10 10-6 1.2-8.8 4-10 10-1.2-6-4-8.8-10-10 6-1.2 8.8-4 10-10z" fill="currentColor"/></svg></div>
+        <div class="gb"><h3>صورة مربعة لبانر</h3><ol>
+          <li><span><b>اختار مقاس البانر</b> (سيرفر أو بروفايل أو غلاف).</span></li>
+          <li><span><b>حرّك "الجزء اللي يظهر"</b> لحد ما الجزء اللي عايزه يبان.</span></li>
+          <li><span><b>نزّل البانر</b> جاهز للرفع.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="40" y="30" width="70" height="70" rx="10" fill="currentColor" opacity=".25" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M126 48l16 18-16 18"/><path d="M124 66h18" /></g><rect x="158" y="44" width="110" height="42" rx="8" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M158 100h110M158 104v-8M268 104v-8" opacity=".6"/><path d="M280 44v42M276 44h8M276 86h8" opacity=".6"/></g><text x="213" y="70" fill="currentColor" font-size="14" font-weight="700" text-anchor="middle" font-family="sans-serif">512×256</text></svg></div>
+        <div class="gb"><h3>تغيير المقاس</h3><ol>
+          <li><span><b>اختار مقاس جاهز</b> أو اكتب مقاسك بالبكسل.</span></li>
+          <li><span><b>اختار طريقة الملء:</b> تملا، أو كاملة، أو تمديد.</span></li>
+          <li><span><b>راجع حجم الملف</b> قبل التنزيل، خصوصًا للإيموجي والستيكر.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="36" y="22" width="88" height="88" rx="12" fill="currentColor" opacity=".28" stroke="currentColor" stroke-width="2"/><text x="80" y="72" fill="currentColor" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">2.4 MB</text><path d="M140 66h30M160 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="190" y="44" width="46" height="46" rx="8" fill="currentColor" opacity=".28" stroke="currentColor" stroke-width="2"/><text x="213" y="72" fill="currentColor" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">240 KB</text><rect x="244" y="52" width="40" height="22" rx="11" fill="currentColor" opacity=".9"/><text x="264" y="68" fill="#fff" font-size="12" font-weight="700" text-anchor="middle" font-family="sans-serif">-90%</text></svg></div>
+        <div class="gb"><h3>تصغير الحجم</h3><ol>
+          <li><span><b>اختار الصيغة:</b> JPG للأصغر، وWebP أو PNG لو محتاج شفافية.</span></li>
+          <li><span><b>حرّك الجودة</b> وقلّل الأبعاد لحد ما الحجم يناسبك.</span></li>
+          <li><span><b>راجع التوفير</b> ونزّل الصورة.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><defs><filter id="bl"><feGaussianBlur stdDeviation="3"/></filter></defs><g filter="url(#bl)"><rect x="40" y="38" width="56" height="56" rx="10" fill="currentColor" opacity=".35"/><path d="M68 52c1.4 7 4.6 10.2 11.6 11.6-7 1.4-10.2 4.6-11.6 11.6-1.4-7-4.6-10.2-11.6-11.6 7-1.4 10.2-4.6 11.6-11.6z" fill="currentColor"/></g><path d="M118 66h30M138 56l10 10-10 10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="170" y="18" width="100" height="100" rx="14" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2.5"/><path d="M220 44c2.6 13 8.6 19 21.6 21.6-13 2.6-19 8.6-21.6 21.6-2.6-13-8.6-19-21.6-21.6 13-2.6 19-8.6 21.6-21.6z" fill="currentColor"/><text x="252" y="108" fill="currentColor" font-size="14" font-weight="700" text-anchor="middle" font-family="sans-serif">×4</text></svg></div>
+        <div class="gb"><h3>تحسين الجودة</h3><ol>
+          <li><span><b>اختار التكبير</b> ×2 أو ×3 أو ×4.</span></li>
+          <li><span><b>اظبط الحدة</b> وفعّل تحسين الألوان لو الصورة باهتة.</span></li>
+          <li><span><b>قرّب المعاينة ×3</b> وقارن قبل وبعد، وبعدين نزّل.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M50 36h200M50 66h200M50 96h200" opacity=".35"/><path d="M50 36h110M50 66h70M50 96h140"/></g><circle cx="160" cy="36" r="10" fill="currentColor"/><circle cx="120" cy="66" r="10" fill="currentColor"/><circle cx="190" cy="96" r="10" fill="currentColor"/><circle cx="262" cy="36" r="8" fill="#fbbf24" opacity=".9"/><circle cx="262" cy="66" r="8" fill="#6ee7b7" opacity=".9"/><circle cx="262" cy="96" r="8" fill="#fb7185" opacity=".9"/></svg></div>
+        <div class="gb"><h3>ضبط الألوان</h3><ol>
+          <li><span><b>ارفع صورتك</b> وحرّك السطوع والتباين.</span></li>
+          <li><span><b>اظبط التشبّع والدفء</b> لحد ما الألوان تعجبك.</span></li>
+          <li><span><b>اضغط مطوّلاً</b> على زر المقارنة وشوف الأصلية، وبعدين نزّل.</span></li>
+        </ol></div>
+      </article>
+      <article class="guide">
+        <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="70" y="14" width="160" height="104" rx="12" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><circle cx="118" cy="48" r="16" fill="currentColor" opacity=".45"/><path d="M82 108c10-28 36-34 62-34s40 8 52 34z" fill="currentColor" opacity=".35"/><g fill="currentColor"><rect x="150" y="38" width="12" height="12" opacity=".9"/><rect x="162" y="38" width="12" height="12" opacity=".5"/><rect x="174" y="38" width="12" height="12" opacity=".8"/><rect x="150" y="50" width="12" height="12" opacity=".4"/><rect x="162" y="50" width="12" height="12" opacity=".85"/><rect x="174" y="50" width="12" height="12" opacity=".55"/><rect x="150" y="62" width="12" height="12" opacity=".7"/><rect x="162" y="62" width="12" height="12" opacity=".45"/><rect x="174" y="62" width="12" height="12" opacity=".9"/></g><rect x="144" y="32" width="48" height="48" rx="3" stroke="currentColor" stroke-width="2.5" stroke-dasharray="6 5"/></svg></div>
+        <div class="gb"><h3>طمس أجزاء</h3><ol>
+          <li><span><b>اختار نوع الإخفاء</b> (بكسلة أو طمس أو تغطية).</span></li>
+          <li><span><b>اسحب على الجزء</b> اللي عايز تخفيه، وكرر لأكتر من منطقة.</span></li>
+          <li><span><b>تراجع لو غلطت</b> ونزّل الصورة.</span></li>
+        </ol></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="updates" class="home">
+    <div class="sec-head"><h2>أحدث التحديثات</h2><p>اللي اتضاف للموقع من أول يوم.</p></div>
+    <div class="timeline">
+      <div class="rel">
+        <div class="d"><b>10 أكتوبر 2026</b><span class="badge">الأحدث</span></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>أداة ضبط الألوان، وأداة طمس أجزاء من الصورة</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>أداة تصغير الحجم وتغيير الصيغة، وأداة تحسين جودة الصورة</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شاشة بداية، وزر تثبيت التطبيق، وزر مشاركة الموقع</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>أداة تغيير المقاس بمقاسات ديسكورد الجاهزة</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شروحات سريعة لكل أداة وصفحة التحديثات</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>أنيميشن معالجة جديد: شريط مسح بيكشف النتيجة وبينوّر الحواف</li>
+        </ul>
+      </div>
+      <div class="rel">
+        <div class="d"><b>9 أكتوبر 2026</b></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>أداة تحويل الصورة المربعة لبانر</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شريط حساسية إزالة الخلفية، ومعاينة الرول</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>شريط مقارنة قبل وبعد، والوضع الفاتح والداكن</li>
+        </ul>
+      </div>
+      <div class="rel">
+        <div class="d"><b>8 أكتوبر 2026</b></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>إطلاق الموقع بتقريب الحواف ووضع رولز ديسكورد</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>إزالة الخلفية التلقائية للصور اللي ليها خلفية ثابتة</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="home">
     <div class="sec-head"><h2>تواصل معايا</h2><p>عندك اقتراح أو مشكلة؟ كلمني على ديسكورد.</p></div>
     <div class="contact">
       <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.2.5c1.7.4 2.5 1 3.5 1.8a13 13 0 0 0-5-1.4h-3.4a13 13 0 0 0-5 1.4C6.3 4.5 7.200 3.900 8.900 3.500L8.700 3a19.800 19.800 0 0 0-4.900 1.400C.7 9 -.1 13.500.3 18c2 1.500 4 2.400 6 3l1.300-2.100a12 12 0 0 1-2-1l.5-.4a14 14 0 0 0 11.800 0l.5.400a12 12 0 0 1-2 1L17.700 21c2-.6 4-1.500 6-3 .5-5.200-.8-9.700-3.400-13.600zM8.500 15.200c-1.200 0-2.100-1.100-2.100-2.400s.9-2.400 2.100-2.400 2.100 1.100 2.100 2.400-.9 2.400-2.100 2.400zm7 0c-1.200 0-2.100-1.100-2.100-2.400s.9-2.400 2.100-2.400 2.100 1.100 2.100 2.400-.9 2.400-2.100 2.400z"/></svg></div>
@@ -486,7 +578,15 @@
     </div>
   </section>
 
-  <section id="how">
+  <div class="promo home" id="app">
+    <div class="who"><b>ثبّت الموقع كتطبيق</b><span>افتحه من الشاشة الرئيسية زي أي تطبيق، وشاركه مع أصحابك.</span></div>
+    <div class="btns">
+      <button class="btn" type="button" data-act="install"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>ثبّت التطبيق</button>
+      <button class="btn ghost" type="button" data-act="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4"/></svg>شارك الموقع</button>
+    </div>
+  </div>
+
+  <section id="how" class="home">
     <div class="sec-head"><h2>إزاي بيشتغل</h2><p>تلات خطوات وخلاص.</p></div>
     <div class="steps">
       <div class="step"><div class="n">1</div><div><b>ارفع الصورة</b><p>اختار صورة من جهازك أو اسحبها على المربع.</p></div></div>
@@ -495,7 +595,7 @@
     </div>
   </section>
 
-  <section id="faq">
+  <section id="faq" class="home">
     <div class="sec-head"><h2>الأسئلة الشائعة</h2></div>
     <details><summary>هل صورتي بتترفع على سيرفر؟</summary><p>لا. المعالجة كلها بتحصل جوه متصفحك على جهازك، ومفيش حاجة بتتبعت لأي مكان.</p></details>
     <details><summary>ليه الأيقونة لسه صغيرة في ديسكورد؟</summary><p>حجم الإطار اللي ديسكورد بيعرض فيه أيقونة الرول ثابت وصغير. الأداة بتخلي الموضوع ياخد أكبر مساحة ممكنة جوه الإطار ده، لكنها مبتغيّرش حجم الإطار نفسه.</p></details>
@@ -510,476 +610,10 @@
 <nav class="dock" aria-label="تنقل سريع">
   <a href="#top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</a>
   <a href="#tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>الأدوات</a>
-  <a href="#workspace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>ارفع صورة</a>
+  <a href="#/trim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>ارفع صورة</a>
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script>
-
-const drop = document.getElementById('drop');
-const fileInput = document.getElementById('fileInput');
-const beforeImg = document.getElementById('beforeImg');
-const afterCanvas = document.getElementById('afterCanvas');
-const previewRow = document.getElementById('previewRow');
-const dims = document.getElementById('dims');
-const downloadBtn = document.getElementById('downloadBtn');
-const resetBtn = document.getElementById('resetBtn');
-const squareOpt = document.getElementById('squareOpt');
-const roleOpt = document.getElementById('roleOpt');
-
-let resultBlobUrl = null;
-
-drop.addEventListener('click', () => fileInput.click());
-['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
-['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
-drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-squareOpt.addEventListener('change', () => { if (beforeImg.src) process(beforeImg.src); });
-let squarePrev = false;
-roleOpt.addEventListener('change', () => {
-  if (roleOpt.checked) { squarePrev = squareOpt.checked; squareOpt.checked = true; }
-  else { squareOpt.checked = squarePrev; }
-  squareOpt.disabled = roleOpt.checked;
-  document.getElementById('sensBox').style.display = roleOpt.checked ? 'block' : 'none';
-  if (beforeImg.getAttribute('src')) process(beforeImg.src);
-});
-resetBtn.addEventListener('click', () => {
-  fileInput.value = '';
-  beforeImg.removeAttribute('src');
-  document.getElementById('rolePrev').style.display = 'none';
-  previewRow.style.display = 'none';
-  dims.textContent = '';
-  downloadBtn.disabled = true;
-  resetBtn.style.display = 'none';
-});
-
-function handleFile(file) {
-  if (!file.type.startsWith('image/')) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    beforeImg.src = e.target.result;
-    process(e.target.result);
-  };
-  reader.readAsDataURL(file);
-}
-
-function process(src) {
-  const img = new Image();
-  img.onload = () => {
-    try {
-      const w = img.naturalWidth, h = img.naturalHeight;
-      const tmp = document.createElement('canvas');
-      tmp.width = w; tmp.height = h;
-      const tctx = tmp.getContext('2d');
-      tctx.drawImage(img, 0, 0);
-      const data = tctx.getImageData(0, 0, w, h);
-
-      let hasAlpha = checkHasAlpha(data);
-      let bg = hasAlpha ? null : sampleCorners(data, w, h);
-      let srcImg = img, bgNote = '';
-
-      // وضع الرولز: لو الصورة ليها خلفية ثابتة نشيلها الأول، ولو مفيش نكمل تظبيط الأبعاد بس
-      if (roleOpt.checked && !hasAlpha) {
-        const cut = removeBackground(data, w, h);
-        if (cut) { srcImg = cut.canvas; data.data.set(cut.data); hasAlpha = true; bg = null; bgNote = '  —  اتشالت الخلفية'; }
-        else bgNote = '  —  مفيش خلفية ثابتة، اتظبطت الأبعاد بس';
-      }
-      const box = findBounds(data, w, h, hasAlpha, bg);
-
-      let cw = box.maxX - box.minX + 1;
-      let ch = box.maxY - box.minY + 1;
-      let outCanvas = document.createElement('canvas');
-
-      if (roleOpt.checked) {
-        outCanvas = smartRoleFit(srcImg, data, w, h, hasAlpha, bg);
-      } else if (squareOpt.checked) {
-        const trim = 0.02; // نسبة التقريب من الفوق ومن التحت
-        const cutY = Math.floor(ch * trim);
-        const srcY = box.minY + cutY;
-        const srcH = ch - cutY * 2;
-        const size = Math.max(cw, srcH);
-        outCanvas.width = size; outCanvas.height = size;
-        const octx = outCanvas.getContext('2d');
-        const dx = Math.floor((size - cw) / 2);
-        const dy = Math.floor((size - srcH) / 2);
-        octx.drawImage(img, box.minX, srcY, cw, srcH, dx, dy, cw, srcH);
-      } else {
-        outCanvas.width = cw; outCanvas.height = ch;
-        const octx = outCanvas.getContext('2d');
-        octx.drawImage(img, box.minX, box.minY, cw, ch, 0, 0, cw, ch);
-      }
-
-      afterCanvas.width = outCanvas.width;
-      afterCanvas.height = outCanvas.height;
-      afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
-
-      dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
-      previewRow.style.display = 'flex'; renderRolePreview(outCanvas); setCmp(50);
-      resetBtn.style.display = 'inline-block';
-
-      outCanvas.toBlob(blob => {
-        if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
-        resultBlobUrl = URL.createObjectURL(blob);
-        downloadBtn.disabled = false;
-      }, 'image/png');
-    } catch (err) {
-      dims.textContent = 'حصل خطأ أثناء معالجة الصورة، جرب صورة تانية.';
-    }
-  };
-  img.src = src;
-}
-
-// معالجة رولز ديسكورد: بتلاقي الموضوع الحقيقي وتتجاهل النقط الشاردة، وبتحسب أصغر دايرة
-// تغطي 99.5% من الموضوع (عشان ديسكورد بيعرض الأيقونة في إطار دايري صغير)، وبتحط الموضوع في
-// نص مربع 256×256 شفاف مع هامش بسيط، وبعدين بتزوّد التباين 10% زي ما اتفقنا
-function smartRoleFit(img, data, w, h, hasAlpha, bg) {
-  const d = data.data;
-  const tol = 28;
-  const isFg = (i) => {
-    if (hasAlpha) return d[i + 3] >= 24;
-    const dr = d[i] - bg[0], dg = d[i + 1] - bg[1], db = d[i + 2] - bg[2];
-    return Math.sqrt(dr * dr + dg * dg + db * db) >= tol;
-  };
-
-  // 1) عدّ البكسلات الفعلية في كل صف وعمود، والصف أو العمود لازم فيه بكسلين على الأقل
-  const rows = new Uint32Array(h), cols = new Uint32Array(w);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    if (isFg((y * w + x) * 4)) { rows[y]++; cols[x]++; }
-  }
-  const need = 2;
-  let minY = 0, maxY = h - 1, minX = 0, maxX = w - 1;
-  while (minY < h - 1 && rows[minY] < need) minY++;
-  while (maxY > minY && rows[maxY] < need) maxY--;
-  while (minX < w - 1 && cols[minX] < need) minX++;
-  while (maxX > minX && cols[maxX] < need) maxX--;
-
-  const bw = maxX - minX + 1, bh = maxY - minY + 1;
-  const cx = (minX + maxX + 1) / 2, cy = (minY + maxY + 1) / 2;
-
-  // 2) المسافة من المركز لكل بكسل فعلي، ونحدد نصف القطر اللي يغطي 99.5% منهم
-  const maxDist = Math.hypot(bw, bh) / 2 + 2;
-  const BINS = 512;
-  const hist = new Uint32Array(BINS);
-  let total = 0;
-  for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
-    if (!isFg((y * w + x) * 4)) continue;
-    const dist = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
-    hist[Math.min(BINS - 1, Math.floor(dist / maxDist * BINS))]++;
-    total++;
-  }
-  let radius = maxDist;
-  if (total > 0) {
-    let acc = 0;
-    for (let b = 0; b < BINS; b++) {
-      acc += hist[b];
-      if (acc >= total * 0.995) { radius = (b + 1) / BINS * maxDist; break; }
-    }
-  }
-
-  // 3) نصف المربع: مش أقل من نص أكبر بُعد (عشان ميتقصش من الجنب)، مع هامش 4%
-  const half = Math.max(radius, Math.max(bw, bh) / 2) * 1.04;
-
-  // 4) نرسم الموضوع في مربع 256×256 شفاف
-  const OUT = 256;
-  const scale = OUT / (2 * half);
-  const out = document.createElement('canvas');
-  out.width = OUT; out.height = OUT;
-  const ctx = out.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, -(cx - half) * scale, -(cy - half) * scale, w * scale, h * scale);
-
-  // 5) تباين +10% على الألوان بس (الشفافية زي ما هي)
-  const id = ctx.getImageData(0, 0, OUT, OUT);
-  const p = id.data;
-  for (let i = 0; i < p.length; i += 4) {
-    if (p[i + 3] === 0) continue;
-    for (let k = 0; k < 3; k++) {
-      const v = (p[i + k] - 128) * 1.1 + 128;
-      p[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
-    }
-  }
-  ctx.putImageData(id, 0, 0);
-  return out;
-}
-
-// إزالة الخلفية: بتشتغل بس لو أركان الصورة الأربعة لونها واحد تقريبًا (خلفية ثابتة).
-// بتمسح البكسلات المشابهة للون الخلفية والمتصلة بحواف الصورة بس، فالألوان اللي جوه الموضوع بتفضل
-function removeBackground(imgData, w, h) {
-  const d = imgData.data;
-  const px = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
-  const cs = [px(0, 0), px(w - 1, 0), px(0, h - 1), px(w - 1, h - 1)];
-  const bg = [0, 1, 2].map(k => (cs[0][k] + cs[1][k] + cs[2][k] + cs[3][k]) / 4);
-  const dist = (i) => Math.hypot(d[i] - bg[0], d[i + 1] - bg[1], d[i + 2] - bg[2]);
-  for (const c of cs) if (Math.hypot(c[0] - bg[0], c[1] - bg[1], c[2] - bg[2]) > 30) return null;
-
-  const TOL = +document.getElementById('sens').value, SOFT = 22;
-  const seen = new Uint8Array(w * h);
-  const stack = [];
-  const push = (x, y) => {
-    const p = y * w + x;
-    if (seen[p] || dist(p * 4) > TOL) return;
-    seen[p] = 1; stack.push(p);
-  };
-  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
-  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
-  let removed = 0;
-  while (stack.length) {
-    const p = stack.pop(); removed++;
-    const x = p % w, y = (p - x) / w;
-    if (x > 0) push(x - 1, y);
-    if (x < w - 1) push(x + 1, y);
-    if (y > 0) push(x, y - 1);
-    if (y < h - 1) push(x, y + 1);
-  }
-  const frac = removed / (w * h);
-  if (frac < 0.02 || frac > 0.97) return null;
-
-  const out = new Uint8ClampedArray(d);
-  for (let p = 0; p < w * h; p++) {
-    const i = p * 4;
-    if (seen[p]) { out[i + 3] = 0; continue; }
-    // حافة ناعمة: البكسل اللي جنب الخلفية وقريب من لونها نخلّي شفافيته جزئية
-    const x = p % w, y = (p - x) / w;
-    const near = (x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (y > 0 && seen[p - w]) || (y < h - 1 && seen[p + w]);
-    if (near) {
-      const t = (dist(i) - TOL) / SOFT;
-      if (t < 1) out[i + 3] = Math.round(255 * Math.max(0.15, t));
-    }
-  }
-  const cv = document.createElement('canvas');
-  cv.width = w; cv.height = h;
-  cv.getContext('2d').putImageData(new ImageData(out, w, h), 0, 0);
-  return { canvas: cv, data: out };
-}
-
-function checkHasAlpha(data) {
-  const d = data.data;
-  let n = 0;
-  for (let i = 3; i < d.length; i += 4) { // أي بكسل شفاف فعلًا (مش عينة) عشان ميفوتناش
-    if (d[i] < 250 && ++n > 20) return true;
-  }
-  return false;
-}
-
-function sampleCorners(data, w, h) {
-  const d = data.data;
-  const get = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i+1], d[i+2]]; };
-  const corners = [get(0,0), get(w-1,0), get(0,h-1), get(w-1,h-1)];
-  const avg = [0,0,0];
-  corners.forEach(c => { avg[0]+=c[0]; avg[1]+=c[1]; avg[2]+=c[2]; });
-  return [avg[0]/4, avg[1]/4, avg[2]/4];
-}
-
-function findBounds(data, w, h, hasAlpha, bg) {
-  const d = data.data;
-  const tol = 28;
-  const isBackground = (x, y) => {
-    const i = (y * w + x) * 4;
-    if (hasAlpha) return d[i+3] < 10;
-    const dr = d[i]-bg[0], dg = d[i+1]-bg[1], db = d[i+2]-bg[2];
-    return Math.sqrt(dr*dr+dg*dg+db*db) < tol;
-  };
-
-  let minX = 0, maxX = w-1, minY = 0, maxY = h-1;
-
-  scanTop:
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) if (!isBackground(x,y)) { minY = y; break scanTop; }
-    if (y === h-1) minY = 0;
-  }
-  scanBottom:
-  for (let y = h-1; y >= 0; y--) {
-    for (let x = 0; x < w; x++) if (!isBackground(x,y)) { maxY = y; break scanBottom; }
-    if (y === 0) maxY = h-1;
-  }
-  scanLeft:
-  for (let x = 0; x < w; x++) {
-    for (let y = 0; y < h; y++) if (!isBackground(x,y)) { minX = x; break scanLeft; }
-    if (x === w-1) minX = 0;
-  }
-  scanRight:
-  for (let x = w-1; x >= 0; x--) {
-    for (let y = 0; y < h; y++) if (!isBackground(x,y)) { maxX = x; break scanRight; }
-    if (x === 0) maxX = w-1;
-  }
-
-  if (minX > maxX || minY > maxY) { minX=0; minY=0; maxX=w-1; maxY=h-1; }
-  return { minX, minY, maxX, maxY };
-}
-
-downloadBtn.addEventListener('click', () => {
-  if (!resultBlobUrl) return;
-  const a = document.createElement('a');
-  a.href = resultBlobUrl;
-  a.download = 'صنع-نور-الدين.png';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-});
-
-
-// ===== حساسية إزالة الخلفية =====
-const sens = document.getElementById('sens');
-let sensTimer;
-sens.addEventListener('input', () => {
-  document.getElementById('sensOut').textContent = sens.value;
-  clearTimeout(sensTimer);
-  sensTimer = setTimeout(() => { if (beforeImg.getAttribute('src')) process(beforeImg.src); }, 120);
-});
-
-// ===== مقارنة قبل وبعد =====
-const cmp = document.getElementById('cmp');
-function setCmp(v) {
-  cmp.value = v;
-  beforeImg.style.clipPath = `inset(0 ${100 - v}% 0 0)`;
-  document.getElementById('bar').style.left = v + '%';
-}
-cmp.addEventListener('input', () => setCmp(cmp.value));
-
-// ===== معاينة الرول =====
-function renderRolePreview(src) {
-  const box = document.getElementById('rolePrev');
-  if (!roleOpt.checked) { box.style.display = 'none'; return; }
-  box.style.display = 'block';
-  [64, 32, 18].forEach(n => {
-    const c = document.getElementById('rp' + n);
-    const x = c.getContext('2d');
-    x.clearRect(0, 0, n, n);
-    x.imageSmoothingQuality = 'high';
-    x.drawImage(src, 0, 0, n, n);
-  });
-}
-
-// ===== الوضع الفاتح والداكن =====
-document.getElementById('themeBtn').addEventListener('click', () => {
-  const root = document.documentElement;
-  const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  root.classList.add('theme-anim'); setTimeout(() => root.classList.remove('theme-anim'), 500);
-  const tb = document.getElementById('themeBtn'); tb.classList.remove('spin'); void tb.offsetWidth; tb.classList.add('spin');
-  root.setAttribute('data-theme', next);
-  try { localStorage.setItem('theme', next); } catch (e) {}
-  const m = document.querySelector('meta[name=theme-color]');
-  if (m) m.content = next === 'light' ? '#f5f5fb' : '#0a0a12';
-});
-
-// ===== نسخ يوزر ديسكورد =====
-const toast = document.getElementById('toast');
-function showToast(t) {
-  toast.textContent = t; toast.classList.add('show');
-  clearTimeout(showToast.t); showToast.t = setTimeout(() => toast.classList.remove('show'), 1800);
-}
-document.getElementById('userBtn').addEventListener('click', async () => {
-  const name = 'v6xwlp_';
-  try { await navigator.clipboard.writeText(name); }
-  catch (e) {
-    const t = document.createElement('textarea'); t.value = name; document.body.appendChild(t);
-    t.select(); try { document.execCommand('copy'); } catch (_) {} t.remove();
-  }
-  showToast('اتنسخ اليوزر ✓');
-});
-
-// ===== صورة مربعة لبانر =====
-const bDrop = document.getElementById('bDrop'), bInput = document.getElementById('bInput');
-const bCanvas = document.getElementById('bCanvas'), bWrap = document.getElementById('bWrap');
-const bDims = document.getElementById('bDims'), bDownload = document.getElementById('bDownload');
-const bScale = document.getElementById('bScale'), bScaleOut = document.getElementById('bScaleOut');
-const bColor = document.getElementById('bColor');
-let bImg = null, bW = 960, bH = 540, bBg = 'blur', bUrl = null;
-
-let bFit = 'cover';
-const bPos = document.getElementById('bPos'), bZoom = document.getElementById('bZoom'), bZoomOut = document.getElementById('bZoomOut');
-function drawBanner() {
-  if (!bImg) return;
-  bCanvas.width = bW; bCanvas.height = bH;
-  const ctx = bCanvas.getContext('2d');
-  ctx.clearRect(0, 0, bW, bH);
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  const iw = bImg.naturalWidth, ih = bImg.naturalHeight;
-  if (bFit === 'cover') {
-    // الصورة تغطي البانر كله: نكبّرها لحد ما تملا العرض والطول، ونقص الزيادة حسب الموضع
-    const k = Math.max(bW / iw, bH / ih) * (bZoom.value / 100);
-    const w = iw * k, h = ih * k;
-    ctx.drawImage(bImg, -(w - bW) * 0.5, -(h - bH) * (bPos.value / 100), w, h);
-    // ملحوظة: القص الأفقي بيتوزع على الجانبين، والرأسي حسب شريط الموضع
-  } else {
-    if (bBg === 'blur') {
-      const t = document.createElement('canvas'); t.width = 24; t.height = Math.max(2, Math.round(24 * bH / bW));
-      const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high';
-      const kk = Math.max(t.width / iw, t.height / ih);
-      tx.drawImage(bImg, (t.width - iw * kk) / 2, (t.height - ih * kk) / 2, iw * kk, ih * kk);
-      ctx.drawImage(t, 0, 0, bW, bH);
-      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(0, 0, bW, bH);
-    } else if (bBg === 'color') {
-      ctx.fillStyle = bColor.value; ctx.fillRect(0, 0, bW, bH);
-    }
-    const k = Math.min(bW / iw, bH / ih) * (bScale.value / 100);
-    const w = iw * k, h = ih * k;
-    ctx.drawImage(bImg, (bW - w) / 2, (bH - h) / 2, w, h);
-  }
-  bWrap.style.display = 'flex';
-  bDims.textContent = 'مقاس البانر: \u2066' + bW + '×' + bH + '\u2069';
-  bCanvas.toBlob(bl => { if (bUrl) URL.revokeObjectURL(bUrl); bUrl = URL.createObjectURL(bl); bDownload.disabled = false; }, 'image/png');
-}
-function loadBanner(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const r = new FileReader();
-  r.onload = e => { const im = new Image(); im.onload = () => { bImg = im; drawBanner(); }; im.src = e.target.result; };
-  r.readAsDataURL(file);
-}
-bInput.addEventListener('change', e => loadBanner(e.target.files[0]));
-bDrop.addEventListener('click', () => bInput.click());
-bDrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bInput.click(); } });
-['dragenter', 'dragover'].forEach(ev => bDrop.addEventListener(ev, e => { e.preventDefault(); bDrop.classList.add('drag'); }));
-['dragleave', 'drop'].forEach(ev => bDrop.addEventListener(ev, e => { e.preventDefault(); bDrop.classList.remove('drag'); }));
-bDrop.addEventListener('drop', e => loadBanner(e.dataTransfer.files[0]));
-function chipGroup(id, fn) {
-  const g = document.getElementById(id);
-  g.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
-    g.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    c.setAttribute('aria-pressed', 'true'); fn(c); drawBanner();
-  }));
-}
-chipGroup('bSizes', c => { bW = +c.dataset.w; bH = +c.dataset.h; });
-chipGroup('bFit', c => {
-  bFit = c.dataset.fit;
-  document.getElementById('bPosBox').style.display = bFit === 'cover' ? '' : 'none';
-  document.getElementById('bBgBox').style.display = bFit === 'cover' ? 'none' : '';
-});
-bPos.addEventListener('input', drawBanner);
-bZoom.addEventListener('input', () => { bZoomOut.textContent = bZoom.value + '%'; drawBanner(); });
-chipGroup('bBg', c => { bBg = c.dataset.bg; });
-bColor.addEventListener('input', () => {
-  bBg = 'color';
-  document.querySelectorAll('#bBg .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.bg === 'color'));
-  drawBanner();
-});
-bScale.addEventListener('input', () => { bScaleOut.textContent = bScale.value + '%'; drawBanner(); });
-bDownload.addEventListener('click', () => {
-  if (!bUrl) return;
-  const a = document.createElement('a'); a.href = bUrl; a.download = `بانر-${bW}x${bH}.png`;
-  document.body.appendChild(a); a.click(); a.remove();
-});
-
-// ===== واجهة الصفحة =====
-const menuBtn = document.getElementById('menuBtn');
-const drawer = document.getElementById('drawer');
-menuBtn.addEventListener('click', () => {
-  const open = drawer.classList.toggle('open');
-  menuBtn.setAttribute('aria-expanded', open);
-});
-drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-  drawer.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false');
-}));
-
-document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => {
-  if (btn.dataset.mode === 'banner') { document.getElementById('banner').scrollIntoView({behavior: 'smooth'}); return; }
-  const wantRole = btn.dataset.mode === 'role';
-  if (roleOpt.checked !== wantRole) { roleOpt.checked = wantRole; roleOpt.dispatchEvent(new Event('change')); }
-  document.getElementById('workspace').scrollIntoView({behavior: 'smooth'});
-}));
-
-drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
-</script>
+<script src="app.js" defer></script>
 </body>
 </html>
