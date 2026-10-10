@@ -18,6 +18,8 @@ drop.addEventListener('click', () => fileInput.click());
 drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 squareOpt.addEventListener('change', () => { if (beforeImg.src) process(beforeImg.src); });
+const outlineOpt = document.getElementById('outlineOpt');
+outlineOpt.addEventListener('change', () => { if (beforeImg.getAttribute('src')) process(beforeImg.src); });
 let squarePrev = false;
 roleOpt.addEventListener('change', () => {
   if (roleOpt.checked) { squarePrev = squareOpt.checked; squareOpt.checked = true; }
@@ -78,6 +80,7 @@ function handleFile(file) {
     downloadBtn.disabled = !resultBlobUrl;
     setCmp(0);
     sweepCmp(0, 50, 900);
+    if (roleOpt.checked) showToast('أداة رولز ديسكورد بتحاول تظبط الصورة على قد ما تقدر، لكن ديسكورد بيعرض أيقونة الرول بحجم ثابت حوالي 20 بكسل.', 7000);
   };
   reader.readAsDataURL(file);
 }
@@ -142,6 +145,7 @@ function process(src) {
       outCanvas.toBlob(blob => {
         if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
         resultBlobUrl = URL.createObjectURL(blob);
+        if (roleOpt.checked && blob.size > 256 * 1024) dims.textContent += '  —  تنبيه: حجم الملف أكبر من 256KB وديسكورد مش هيقبله';
         if (!holdCmp) downloadBtn.disabled = false;
       }, 'image/png');
     } catch (err) {
@@ -202,27 +206,79 @@ function smartRoleFit(img, data, w, h, hasAlpha, bg) {
   // الأيقونة بتتعرض صغيرة جداً في ديسكورد، فنملّي المربع بأكبر بُعد تقريباً بدون هامش زيادة
   const half = Math.max(bw, bh) / 2 * 1.015 + 1;
 
-  // 4) نرسم الموضوع في مربع 256×256 شفاف
+  // 4) نرسم الموضوع في مربع 256×256 شفاف، بتصغير على مراحل عشان الجودة تفضل عالية
   const OUT = 256;
-  const scale = OUT / (2 * half);
+  const outline = document.getElementById('outlineOpt') && document.getElementById('outlineOpt').checked;
+  const pad = outline ? 7 : 0;                          // مساحة للحد الخارجي
+  const scale = (OUT - 2 * pad) / (2 * half);
+  const sx = cx - half, sy = cy - half, sSize = 2 * half;
+  let cur = document.createElement('canvas');
+  let curSize = Math.max(1, Math.round(sSize));
+  cur.width = curSize; cur.height = curSize;
+  let cctx = cur.getContext('2d');
+  cctx.drawImage(img, -sx, -sy);
+  const target = Math.max(1, Math.round(OUT - 2 * pad));
+  while (curSize / 2 > target) {                          // نصّف الحجم كل مرة لحد ما نقرب من المطلوب
+    const nxt = document.createElement('canvas');
+    const ns = Math.max(target, Math.floor(curSize / 2));
+    nxt.width = ns; nxt.height = ns;
+    const nctx = nxt.getContext('2d');
+    nctx.imageSmoothingEnabled = true; nctx.imageSmoothingQuality = 'high';
+    nctx.drawImage(cur, 0, 0, ns, ns);
+    cur = nxt; curSize = ns;
+  }
+  const subj = document.createElement('canvas');
+  subj.width = OUT; subj.height = OUT;
+  const sctx = subj.getContext('2d');
+  sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = 'high';
+  sctx.drawImage(cur, pad, pad, OUT - 2 * pad, OUT - 2 * pad);
+
+  // 5) تحسين الوضوح: تباين + تشبع + حدّة خفيفة على الألوان بس (الشفافية زي ما هي)
+  const id = sctx.getImageData(0, 0, OUT, OUT);
+  const p = id.data;
+  const orig = new Uint8ClampedArray(p);
+  const SH = 0.7;                                         // قوة الحدّة
+  const at = (x, y) => (Math.min(OUT - 1, Math.max(0, y)) * OUT + Math.min(OUT - 1, Math.max(0, x))) * 4;
+  for (let y = 0; y < OUT; y++) for (let x = 0; x < OUT; x++) {
+    const i = (y * OUT + x) * 4;
+    if (orig[i + 3] === 0) continue;
+    const nb = [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)];
+    for (let kk = 0; kk < 3; kk++) {
+      let sum = 0, n = 0;
+      for (const q of nb) if (orig[q + 3] > 40) { sum += orig[q + kk]; n++; }
+      let v = orig[i + kk];
+      if (n) v = v + SH * (v - sum / n);                  // unsharp: القيمة + قوة × (القيمة - متوسط الجيران)
+      p[i + kk] = v;
+    }
+    // تشبع +18% ثم تباين +18%
+    const g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+    for (let kk = 0; kk < 3; kk++) {
+      let v = g + (p[i + kk] - g) * 1.18;
+      v = (v - 128) * 1.18 + 128;
+      p[i + kk] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  sctx.putImageData(id, 0, 0);
+
   const out = document.createElement('canvas');
   out.width = OUT; out.height = OUT;
   const ctx = out.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, -(cx - half) * scale, -(cy - half) * scale, w * scale, h * scale);
-
-  // 5) تباين +10% على الألوان بس (الشفافية زي ما هي)
-  const id = ctx.getImageData(0, 0, OUT, OUT);
-  const p = id.data;
-  for (let i = 0; i < p.length; i += 4) {
-    if (p[i + 3] === 0) continue;
-    for (let k = 0; k < 3; k++) {
-      const v = (p[i + k] - 128) * 1.1 + 128;
-      p[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+  if (outline) {                                          // حد أبيض ناعم حوالين الموضوع عشان يبان على أي خلفية في ديسكورد
+    const sil = document.createElement('canvas');
+    sil.width = OUT; sil.height = OUT;
+    const lctx = sil.getContext('2d');
+    lctx.drawImage(subj, 0, 0);
+    lctx.globalCompositeOperation = 'source-in';
+    lctx.fillStyle = '#ffffff';
+    lctx.fillRect(0, 0, OUT, OUT);
+    const R = 4;
+    for (let a = 0; a < 24; a++) {
+      const ang = a / 24 * Math.PI * 2;
+      ctx.drawImage(sil, Math.cos(ang) * R, Math.sin(ang) * R);
     }
+    ctx.drawImage(sil, 0, 0);
   }
-  ctx.putImageData(id, 0, 0);
+  ctx.drawImage(subj, 0, 0);
   return out;
 }
 
