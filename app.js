@@ -25,6 +25,7 @@ roleOpt.addEventListener('change', () => {
   if (roleOpt.checked) { squarePrev = squareOpt.checked; squareOpt.checked = true; }
   else { squareOpt.checked = squarePrev; }
   squareOpt.disabled = roleOpt.checked;
+  if (roleOpt.checked) loadAI();
   if (beforeImg.getAttribute('src')) process(beforeImg.src);
 });
 resetBtn.addEventListener('click', () => {
@@ -50,7 +51,7 @@ function handleFile(file) {
     document.getElementById('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
     holdCmp = true;
     lastInfo = null;
-    process(e.target.result);                  // المعالجة الفعلية سريعة، والأنيميشن بيعرض اللي لقيته فعلًا خطوة خطوة
+    const procDone = process(e.target.result);   // المعالجة الفعلية سريعة، والأنيميشن بيعرض اللي لقيته فعلًا خطوة خطوة
     for (let i = 0; i < 40 && !lastInfo; i++) await wait(25);
     const I = lastInfo || {};
     const rgb = I.bg ? `rgb(${I.bg.map(Math.round).join(',')})` : null;
@@ -65,6 +66,7 @@ function handleFile(file) {
       {t: 'بحدد حدود الموضوع بدقة…', ms: 1500},
       {t: `بظبط الأبعاد على ${I.out || ''}…`, ms: 1300}
     ];
+    if (roleOpt.checked) steps.splice(3, 0, {t: aiState === 'off' ? 'بحلل شكل الصورة…' : 'الذكاء الاصطناعي بيحدد الموضوع…', ms: 1800});
     const stage = document.getElementById('stage'), edgeCv = document.getElementById('edgeCv');
     buildEdges(afterCanvas, edgeCv);
     stage.classList.add('scanning');
@@ -75,6 +77,7 @@ function handleFile(file) {
       edgeCv.style.webkitMaskImage = edgeCv.style.maskImage = m;   // الحواف بتنوّر ورا الشريط وبتختفي
     });
     stage.classList.remove('scanning');
+    await procDone;                                           // لو التحليل لسه شغال نستناه
     holdCmp = false;
     downloadBtn.disabled = !resultBlobUrl;
     setCmp(0);
@@ -85,9 +88,12 @@ function handleFile(file) {
 }
 
 let lastInfo = null;
+let procRun = 0;
 function process(src) {
+  const myRun = ++procRun;
+  return new Promise(resolve => {
   const img = new Image();
-  img.onload = () => {
+  img.onload = async () => {
     try {
       const w = img.naturalWidth, h = img.naturalHeight;
       const tmp = document.createElement('canvas');
@@ -109,7 +115,8 @@ function process(src) {
       let outCanvas = document.createElement('canvas');
 
       if (roleOpt.checked) {
-        outCanvas = smartRole(img);
+        outCanvas = await smartRole(img);
+        if (myRun !== procRun) return;                       // اترفعت صورة أو إعداد جديد أثناء التحليل
       } else if (squareOpt.checked) {
         const trim = 0.02; // نسبة التقريب من الفوق ومن التحت
         const cutY = Math.floor(ch * trim);
@@ -132,30 +139,84 @@ function process(src) {
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
       dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
-      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.crop} · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}`;
+      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.ai ? 'بالذكاء الاصطناعي · ' : ''}${roleInfo.crop} · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}`;
       previewRow.style.display = 'flex'; renderRolePreview(outCanvas); if (!holdCmp) setCmp(50);
       resetBtn.style.display = 'inline-block';
 
-      outCanvas.toBlob(blob => {
+      await new Promise(done => outCanvas.toBlob(blob => {
         if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
         resultBlobUrl = URL.createObjectURL(blob);
         if (roleOpt.checked && blob.size > 256 * 1024) dims.textContent += '  —  تنبيه: حجم الملف أكبر من 256KB وديسكورد مش هيقبله';
         if (!holdCmp) downloadBtn.disabled = false;
-      }, 'image/png');
+        done();
+      }, 'image/png'));
     } catch (err) {
       dims.textContent = 'حصل خطأ أثناء معالجة الصورة، جرب صورة تانية.';
+    } finally {
+      resolve();
     }
   };
   img.src = src;
+  });
 }
 
 // معالجة رولز ديسكورد: بتلاقي الموضوع الحقيقي وتتجاهل النقط الشاردة، وبتحسب أصغر دايرة
 // تغطي 99.5% من الموضوع (عشان ديسكورد بيعرض الأيقونة في إطار دايري صغير)، وبتحط الموضوع في
+// ===== الذكاء الاصطناعي الخفيف: نموذج U²-Netp (حوالي 4.5MB) لتحديد الموضوع الأساسي =====
+// بيتحمّل مرة واحدة بس لما تستخدم وضع رولز ديسكورد. لو فشل (النت أو الملف مش موجود) الأداة بتكمّل بالتحليل الحسابي.
+const ORT_BASE = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
+let aiSession = null, aiLoading = null, aiState = 'idle';
+function loadAI() {
+  if (aiLoading) return aiLoading;
+  aiLoading = (async () => {
+    try {
+      aiState = 'loading';
+      await new Promise((ok, no) => {
+        const s = document.createElement('script');
+        s.src = ORT_BASE + 'ort.min.js'; s.onload = ok; s.onerror = () => no(new Error('ort'));
+        document.head.appendChild(s);
+      });
+      ort.env.wasm.wasmPaths = ORT_BASE; ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+      const r = await fetch('u2netp.onnx');
+      if (!r.ok) throw new Error('model');
+      aiSession = await ort.InferenceSession.create(await r.arrayBuffer(), { executionProviders: ['wasm'] });
+      aiState = 'ready';
+    } catch (e) { aiSession = null; aiState = 'off'; }
+    return aiSession;
+  })();
+  return aiLoading;
+}
+// بيرجّع قناع الموضوع 320×320 (قيم من 0 لـ 1) أو null
+async function aiMask(img) {
+  const session = await Promise.race([loadAI(), new Promise(r => setTimeout(() => r(null), 25000))]);
+  if (!session) return null;
+  try {
+    const S = 320;
+    const c = document.createElement('canvas'); c.width = S; c.height = S;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, S, S);
+    cx.drawImage(img, 0, 0, S, S);
+    const px = cx.getImageData(0, 0, S, S).data;
+    let mx = 1;
+    for (let i = 0; i < px.length; i += 4) mx = Math.max(mx, px[i], px[i + 1], px[i + 2]);
+    const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
+    const inp = new Float32Array(3 * S * S);
+    for (let i = 0; i < S * S; i++) for (let k = 0; k < 3; k++) inp[k * S * S + i] = (px[i * 4 + k] / mx - mean[k]) / std[k];
+    const res = await session.run({ 'input.1': new ort.Tensor('float32', inp, [1, 3, S, S]) });
+    const o = res[Object.keys(res)[0]].data;
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < S * S; i++) { if (o[i] < lo) lo = o[i]; if (o[i] > hi) hi = o[i]; }
+    const m = new Float32Array(S * S);
+    for (let i = 0; i < S * S; i++) m[i] = (o[i] - lo) / (hi - lo + 1e-8);
+    return m;
+  } catch (e) { return null; }
+}
+
 // ===== معالجة رولز ديسكورد الذكية =====
 // 1) تحديد الموضوع الأساسي (مش الوسط بس) 2) أصغر مربع يغطي الموضوع كله 3) تجربة درجات تباين وتشبع وحدّة
 // وقياس وضوح الأيقونة بالأحجام الصغير والمتوسط والكبير، واختيار أحسن نتيجة لكل صورة لوحدها
 let roleInfo = null;
-function smartRole(img) {
+async function smartRole(img) {
   const w = img.naturalWidth, h = img.naturalHeight;
   // ---- أ) خريطة الأهمية على نسخة صغيرة ----
   const k = Math.min(1, 160 / Math.max(w, h));
@@ -172,7 +233,19 @@ function smartRole(img) {
   const L = new Float32Array(n);
   for (let i = 0; i < n; i++) L[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
   let S = new Float32Array(n);
-  if (alphaMode) {
+  let mk = null, aiUsed = false;
+  if (!alphaMode) mk = await aiMask(img);
+  if (mk) {                                                  // الذكاء الاصطناعي: قناع الموضوع هو خريطة الأهمية
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) {
+      const v = mk[Math.min(319, Math.floor(y / hc * 320)) * 320 + Math.min(319, Math.floor(x / wc * 320))];
+      S[y * wc + x] = Math.max(0, v - 0.1) / 0.9;
+    }
+    let tot = 0; for (let i = 0; i < n; i++) tot += S[i];
+    if (tot < n * 0.01 || tot > n * 0.97) mk = null; else aiUsed = true;   // قناع فاضي أو كله موضوع: نرجع للتحليل الحسابي
+  }
+  if (mk) {
+    /* S جاهزة من النموذج */
+  } else if (alphaMode) {
     for (let i = 0; i < n; i++) S[i] = d[i * 4 + 3] / 255;
   } else {
     const gm = [0, 0, 0], bm = [0, 0, 0]; let bc = 0;
@@ -279,7 +352,16 @@ function smartRole(img) {
   }
   let sumL = 0, cntL = 0;
   for (let i = 0; i < N; i++) if (src[i * 4 + 3] > 40) { sumL += 0.299 * src[i * 4] + 0.587 * src[i * 4 + 1] + 0.114 * src[i * 4 + 2]; cntL++; }
-  const pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
+  let pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
+  if (aiUsed) {                                            // مع الذكاء الاصطناعي: نقطة التباين تتحسب من الموضوع نفسه مش الخلفية
+    let ws = 0, wl = 0;
+    for (let yy = 0; yy < OUT; yy++) for (let xx = 0; xx < OUT; xx++) {
+      const si = Math.min(hc - 1, Math.floor(by + (yy + 0.5) / OUT * sz)) * wc + Math.min(wc - 1, Math.floor(bx + (xx + 0.5) / OUT * sz));
+      const wgt = S[si], j4 = (yy * OUT + xx) * 4;
+      if (wgt > 0.2 && src[j4 + 3] > 40) { ws += wgt; wl += wgt * (0.299 * src[j4] + 0.587 * src[j4 + 1] + 0.114 * src[j4 + 2]); }
+    }
+    if (ws > 50) pivot = Math.min(166, Math.max(90, wl / ws));
+  }
 
   const render = (con, sat, shp, target) => {
     const o = target || new Uint8ClampedArray(src.length);
@@ -348,7 +430,7 @@ function smartRole(img) {
   const outPx = render(best.con, best.sat, best.shp);
   const out = document.createElement('canvas'); out.width = OUT; out.height = OUT;
   out.getContext('2d').putImageData(new ImageData(outPx, OUT, OUT), 0, 0);
-  roleInfo = { crop: cropNote, con: best.con, sat: best.sat, shp: best.shp };
+  roleInfo = { ai: aiUsed, crop: cropNote, con: best.con, sat: best.sat, shp: best.shp };
   return out;
 }
 
