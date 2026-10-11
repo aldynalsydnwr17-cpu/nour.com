@@ -146,6 +146,7 @@ function process(src) {
       await new Promise(done => outCanvas.toBlob(blob => {
         if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
         resultBlobUrl = URL.createObjectURL(blob);
+        lastBlobSize = blob.size;
         if (roleOpt.checked && blob.size > 256 * 1024) dims.textContent += '  —  تنبيه: حجم الملف أكبر من 256KB وديسكورد مش هيقبله';
         if (!holdCmp) downloadBtn.disabled = false;
         done();
@@ -877,18 +878,79 @@ function setCmp(v) {
 cmp.addEventListener('input', () => setCmp(cmp.value));
 
 // ===== معاينة الرول =====
+let rpSrc = null;
 function renderRolePreview(src) {
   const box = document.getElementById('rolePrev');
   if (!roleOpt.checked) { box.style.display = 'none'; return; }
+  rpSrc = src;
   box.style.display = 'block';
-  [64, 32, 18].forEach(n => {
-    const c = document.getElementById('rp' + n);
-    const x = c.getContext('2d');
+  box.querySelectorAll('canvas[data-rp]').forEach(c => {
+    const n = +c.dataset.rp, x = c.getContext('2d');
     x.clearRect(0, 0, n, n);
     x.imageSmoothingQuality = 'high';
     x.drawImage(src, 0, 0, n, n);
   });
 }
+// تعديل الاسم واليوزر والتاج واللون في المعاينة
+(function () {
+  const $ = id => document.getElementById(id);
+  const COLORS = ['#1abc9c', '#2ecc71', '#3498db', '#9b59b6', '#e91e63', '#f1c40f', '#e67e22', '#e74c3c', '#95a5a6', '#5865f2', '#11806a', '#1f8b4c', '#206694', '#71368a', '#ad1457', '#c27c0e', '#a84300', '#992d22', '#979c9f', '#99aab5'];
+  const sw = $('rpSw');
+  COLORS.forEach(col => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.style.setProperty('--c', col); b.dataset.c = col;
+    b.setAttribute('role', 'radio'); b.setAttribute('aria-label', col);
+    b.addEventListener('click', () => { $('rpColor').value = col; upd(); });
+    sw.appendChild(b);
+  });
+  const upd = () => {
+    const tagIn = $('rpTag');
+    // التاج: 4 حروف أو أرقام، عربي أو إنجليزي من أي لغة (الرموز والمسافات بتتشال)
+    const cleanTag = Array.from(tagIn.value.replace(/[^\p{L}\p{N}]/gu, '').toUpperCase()).slice(0, 4).join('');
+    if (tagIn.value !== cleanTag) tagIn.value = cleanTag;
+    const latin = /^[A-Za-z0-9]*$/.test(cleanTag);
+    tagIn.classList.toggle('lat', latin);
+    document.querySelectorAll('.dc-tag').forEach(t => t.classList.toggle('lat', latin));
+    const name = $('rpName').value || 'اسم الرول', user = $('rpUser').value || 'نور', tag = cleanTag || 'TAG', col = $('rpColor').value;
+    $('rpNameOut').textContent = name; $('rpUserOut').textContent = user; $('rpTagOut').textContent = tag;
+    $('rpAv').textContent = Array.from(user)[0] || '؟';
+    $('rpUserOut').style.color = col;
+  };
+  ['rpName', 'rpUser', 'rpTag', 'rpColor'].forEach(id => $(id).addEventListener('input', upd));
+  upd();
+})();
+
+// نصائح بتظهر تحت النتيجة، حسب اللي الأداة لقته في الصورة
+let lastBlobSize = 0;
+function buildRoleTips() {
+  const I = roleInfo || {};
+  const dyn = [];
+  if (I.fill !== undefined && I.fill < 0.5) dyn.push(`الموضوع واخد ${Math.round(I.fill * 100)}% بس من الإطار، فهيبان صغير. جرّب صورة أقرب للموضوع أو اقصّها قبل الرفع.`);
+  if (I.crop && I.crop.indexOf('وسّعت') >= 0) dyn.push('الموضوع طويل أو عريض فاتوسّع الإطار حواليه. لو عايزه أكبر، استخدم صورة شكلها أقرب للمربع.');
+  if (I.l20 !== undefined && I.l20 < 0.45) dyn.push('تفاصيل الصورة بتضيع بالحجم الصغير (20 بكسل). اختار صورة بشكل واضح وألوان متباينة.');
+  if (I.blurry) dyn.push('الصورة مش حادة، فاستخدم نسخة بجودة أعلى لو عندك.');
+  if (I.lowRes) dyn.push('الصورة الأصلية صغيرة وكبّرتها، ونسخة أكبر هتدّي نتيجة أنضف.');
+  if (lastBlobSize > 200 * 1024) dyn.push(`حجم الملف ${Math.round(lastBlobSize / 1024)}KB وقريب من حد ديسكورد (256KB). استخدم صورة أبسط في ألوانها.`);
+  const gen = [
+    'بص على الأيقونة في المعاينة بالحجم الصغير جنب الاسم، لأن ده الحجم اللي الناس هتشوفه.',
+    'الأيقونة بتتعرض على خلفية داكنة، فالألوان الفاتحة والواضحة بتبان أحسن من الغامقة.',
+    'الصورة الشفافة (PNG) بتبان أنضف من الصورة اللي ليها خلفية.',
+    'جرّب اسم الرول واليوزر والتاج بتوعك في المعاينة قبل ما ترفع الأيقونة.'
+  ];
+  if (lastBlobSize && lastBlobSize <= 200 * 1024) gen.unshift(`حجم الملف ${Math.max(1, Math.round(lastBlobSize / 1024))}KB وتحت حد ديسكورد (256KB)، يعني هيترفع من غير مشكلة.`);
+  return dyn.concat(gen).slice(0, 3);
+}
+(function () {
+  const btn = document.getElementById('downloadBtn'), box = document.getElementById('roleTips'), ul = document.getElementById('roleTipsList');
+  const sync = () => {
+    const show = roleOpt.checked && !btn.disabled;
+    if (show) { ul.innerHTML = ''; buildRoleTips().forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); }); }
+    box.style.display = show ? 'block' : 'none';
+  };
+  new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+  roleOpt.addEventListener('change', () => setTimeout(sync, 0));
+  sync();
+})();
 
 // ===== الوضع الفاتح والداكن =====
 document.getElementById('themeBtn').addEventListener('click', () => {
@@ -1586,7 +1648,7 @@ route(true);
 // تحذير تحت كل أداة، بيظهر لما النتيجة تجهز (زرار التنزيل يتفعّل)
 const WARNS = {
   downloadBtn: () => roleOpt.checked
-    ? ['الأداة بتقص على الموضوع الأساسي في الصورة، فأطراف الصورة ممكن تتقص، راجع النتيجة قبل ما ترفعها.', 'أيقونة الرول بتتعرض صغيرة جداً في ديسكورد، والتفاصيل الدقيقة هتختفي.', 'ديسكورد بيرفض أيقونة الرول لو حجمها كبير، فتأكد إن الملف صغير قبل الرفع.']
+    ? []
     : ['التقريب بيقص الأطراف الفاضية، راجع الحواف وتأكد إن مفيش جزء من الموضوع اتقص.', 'لو الصورة فيها ظل أو توهج خفيف ممكن يتشال مع الخلفية.', 'الصورة الأصلية مش بتتغير، اللي بتنزله نسخة جديدة.'],
   bDownload: () => ['القص بيعتمد على الوضع والتكبير اللي اخترتهم، راجع الجزء الظاهر قبل التنزيل.', 'لو الصورة الأصلية صغيرة، تكبيرها لبانر كبير هيخليها باهتة.'],
   rDownload: () => ['تغيير المقاس بالقص ممكن يقص جزء من الصورة، وبالتمديد ممكن يبوّظ النسب.', 'تكبير صورة صغيرة بيقلل جودتها.'],
@@ -1604,13 +1666,15 @@ Object.keys(WARNS).forEach(id => {
   const actions = btn.closest('.actions');
   actions.parentNode.insertBefore(box, actions);
   const sync = () => {
-    const show = !btn.disabled;
+    const list = WARNS[id]();
+    const show = !btn.disabled && list.length > 0;
     if (show) {
       const ul = box.querySelector('ul'); ul.innerHTML = '';
-      WARNS[id]().forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      list.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
     }
     box.style.display = show ? 'block' : 'none';
   };
+  if (id === 'downloadBtn') roleOpt.addEventListener('change', () => setTimeout(sync, 0));
   new MutationObserver(sync).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
   sync();
 });
