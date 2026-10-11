@@ -139,7 +139,7 @@ function process(src) {
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
       dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
-      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.ai ? 'بالذكاء الاصطناعي · ' : ''}${roleInfo.crop} · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}`;
+      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.ai ? 'بالذكاء الاصطناعي · ' : ''}${roleInfo.crop} (الموضوع ${Math.round(roleInfo.fill * 100)}% من الإطار) · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}${roleInfo.lowRes ? ' · الصورة صغيرة وكبّرتها' : ''}${roleInfo.blurry ? ' · الصورة مش حادة وزوّدت الحدّة' : ''} · ${roleInfo.ok ? (roleInfo.tries > 1 ? 'اتحققت بعد ' + roleInfo.tries + ' محاولات' : 'اتحققت من أول محاولة') : 'جرّبت ' + roleInfo.tries + ' محاولات واخترت الأحسن (الصورة نفسها صعبة بالحجم الصغير)'}`;
       previewRow.style.display = 'flex'; renderRolePreview(outCanvas); if (!holdCmp) setCmp(50);
       resetBtn.style.display = 'inline-block';
 
@@ -283,155 +283,226 @@ async function smartRole(img) {
   }
   let total = 0; for (let i = 0; i < n; i++) total += S[i];
 
-  // ---- ب) أصغر مربع يغطي 94% من الموضوع، مع البحث عن أحسن مكان له ----
+  // ---- ب) تحليل الموضوع: صندوقه الحقيقي (من أول ولآخر مكان فيه الموضوع) ----
   const m = Math.min(wc, hc);
-  let sz = Math.round(m * 0.85), bx = Math.round((wc - sz) / 2), by = Math.round((hc - sz) / 2);   // الاحتياطي: زي أداة البوت
-  let cropNote = 'قص من النص';
-  if (total > n * 0.01) {
-    const W1 = wc + 1;
-    const I = new Float64Array(W1 * (hc + 1));
-    for (let y = 0; y < hc; y++) { let row = 0; for (let x = 0; x < wc; x++) { row += S[y * wc + x]; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row; } }
-    const mass = (x0, y0, s) => I[(y0 + s) * W1 + x0 + s] - I[y0 * W1 + x0 + s] - I[(y0 + s) * W1 + x0] + I[y0 * W1 + x0];
-    let cx = 0, cy = 0;
-    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) { const v = S[y * wc + x]; cx += x * v; cy += y * v; }
-    cx /= total; cy /= total;
-    let found = null;
-    for (let f = 0.30; f <= 1.0001; f += 0.025) {
-      const s = Math.max(4, Math.min(m, Math.round(f * m)));
-      let best = -1, px = 0, py = 0;
-      for (let y0 = 0; y0 <= hc - s; y0++) for (let x0 = 0; x0 <= wc - s; x0++) {
-        const ms = mass(x0, y0, s) - 1e-4 * Math.hypot(x0 + s / 2 - cx, y0 + s / 2 - cy);
-        if (ms > best) { best = ms; px = x0; py = y0; }
-      }
-      const cov = mass(px, py, s) / total;
-      if (cov >= 0.94 || s === m) { found = { s, px, py, cov }; break; }
-    }
-    if (found) {
-      let s = Math.min(m, Math.round(found.s * 1.06));       // هامش 6%
-      const ccx = found.px + found.s / 2, ccy = found.py + found.s / 2;
-      bx = Math.round(Math.min(Math.max(0, ccx - s / 2), wc - s));
-      by = Math.round(Math.min(Math.max(0, ccy - s / 2), hc - s));
-      sz = s;
-      cropNote = 'قص على الموضوع (' + Math.round(found.cov * 100) + '% مغطّى)';
-    }
+  const hasSubject = total > n * 0.01;
+  let bbx0 = 0, bby0 = 0, bbx1 = wc, bby1 = hc;
+  if (hasSubject) {
+    const colS = new Float64Array(wc), rowS = new Float64Array(hc);
+    for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) { const v = S[y * wc + x] > 0.25 ? S[y * wc + x] : 0; colS[x] += v; rowS[y] += v; }
+    const span = (arr, len) => {
+      let tot = 0; for (let i = 0; i < len; i++) tot += arr[i];
+      let acc = 0, lo = 0, hi = len;
+      for (let i = 0; i < len; i++) { acc += arr[i]; if (acc >= tot * 0.004) { lo = i; break; } }
+      acc = 0;
+      for (let i = len - 1; i >= 0; i--) { acc += arr[i]; if (acc >= tot * 0.004) { hi = i + 1; break; } }
+      return [lo, Math.max(lo + 1, hi)];
+    };
+    [bbx0, bbx1] = span(colS, wc); [bby0, bby1] = span(rowS, hc);
   }
+  const bw = bbx1 - bbx0, bh = bby1 - bby0, bbcx = (bbx0 + bbx1) / 2, bbcy = (bby0 + bby1) / 2;
+  // هل ينفع نوسّع الإطار برا حدود الصورة؟ (الصور الشفافة، أو اللي خلفيتها لون واحد)
+  const borderPx = [];
+  for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) if (x < 3 || y < 3 || x >= wc - 3 || y >= hc - 3) borderPx.push(y * wc + x);
+  const bmean = [0, 0, 0];
+  for (const p of borderPx) for (let c = 0; c < 3; c++) bmean[c] += d[p * 4 + c] / borderPx.length;
+  let bvar = 0;
+  for (const p of borderPx) for (let c = 0; c < 3; c++) bvar += (d[p * 4 + c] - bmean[c]) ** 2 / (borderPx.length * 3);
+  const padOK = alphaMode || Math.sqrt(bvar) < 22;
+  const padColor = `rgb(${bmean.map(Math.round).join(',')})`;
+  // تكامل خريطة الأهمية عشان نحسب نسبة التغطية بسرعة
+  const W1 = wc + 1;
+  const I = new Float64Array(W1 * (hc + 1));
+  for (let y = 0; y < hc; y++) { let row = 0; for (let x = 0; x < wc; x++) { row += S[y * wc + x]; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row; } }
+  const massRect = (x0, y0, s) => {
+    const xa = Math.max(0, Math.round(x0)), ya = Math.max(0, Math.round(y0));
+    const xb = Math.min(wc, Math.round(x0 + s)), yb = Math.min(hc, Math.round(y0 + s));
+    if (xb <= xa || yb <= ya) return 0;
+    return I[yb * W1 + xb] - I[ya * W1 + xb] - I[yb * W1 + xa] + I[ya * W1 + xa];
+  };
+  const OUT = 256, N = OUT * OUT;
   const sc = 1 / k;
-  let side = Math.min(Math.min(w, h), Math.round(sz * sc));
-  const sx = Math.round(Math.min(Math.max(0, bx * sc), w - side)), sy = Math.round(Math.min(Math.max(0, by * sc), h - side));
 
-  // ---- ج) نقص ونصغّر على مراحل لـ 256×256 ----
-  const OUT = 256;
-  let cur = document.createElement('canvas'); cur.width = side; cur.height = side;
-  cur.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, side, side);
-  let size = side;
-  while (size / 2 > OUT) {
-    const nx = document.createElement('canvas'); const ns = Math.max(OUT, Math.floor(size / 2));
-    nx.width = ns; nx.height = ns;
-    const c = nx.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-    c.drawImage(cur, 0, 0, ns, ns); cur = nx; size = ns;
-  }
-  const base = document.createElement('canvas'); base.width = OUT; base.height = OUT;
-  const bctx = base.getContext('2d', { willReadFrequently: true });
-  bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
-  bctx.drawImage(cur, 0, 0, OUT, OUT);
-  const src = bctx.getImageData(0, 0, OUT, OUT).data;
-  const N = OUT * OUT;
-
-  // ---- د) تفاصيل الحدّة (الأصلي - تغبيش 3×3) نحسبها مرة واحدة ----
-  const det = new Float32Array(N * 3);
-  for (let y = 0; y < OUT; y++) for (let x = 0; x < OUT; x++) {
-    const i = y * OUT + x;
-    for (let c = 0; c < 3; c++) {
-      let s = 0, cnt = 0;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const xx = x + dx, yy = y + dy;
-        if (xx >= 0 && yy >= 0 && xx < OUT && yy < OUT && src[(yy * OUT + xx) * 4 + 3] > 40) { s += src[(yy * OUT + xx) * 4 + c]; cnt++; }
+  // ---- محاولة واحدة كاملة: إطار ← قص وتصغير ← تجربة التباين ← فحص النتيجة ----
+  const attempt = (cfg) => {
+    // 1) الإطار: مربع يحتوي الموضوع كله + هامش، ولو الموضوع أكبر من الصورة نوسّع برا حدودها
+    let wside, wx0, wy0, padded = false, note;
+    const minSide = 0.22 * m;
+    if (!hasSubject) {
+      wside = 0.85 * m; wx0 = (wc - wside) / 2; wy0 = (hc - wside) / 2; note = 'قص من النص';
+    } else {
+      const side0 = Math.max(Math.max(bw, bh) * (1 + 2 * cfg.margin), minSide);
+      if (side0 <= m) {
+        wside = side0; wx0 = Math.min(Math.max(0, bbcx - wside / 2), wc - wside); wy0 = Math.min(Math.max(0, bbcy - wside / 2), hc - wside);
+        note = 'قص على الموضوع';
+      } else if (padOK) {
+        wside = side0; wx0 = bbcx - wside / 2; wy0 = bbcy - wside / 2; padded = true;
+        note = 'وسّعت الإطار عشان الموضوع يظهر كله';
+      } else {
+        wside = m; let best = -1, px = 0, py = 0;
+        for (let y0 = 0; y0 <= hc - m; y0++) for (let x0 = 0; x0 <= wc - m; x0++) {
+          const ms = massRect(x0, y0, m); if (ms > best) { best = ms; px = x0; py = y0; }
+        }
+        wx0 = px; wy0 = py; note = 'قص (الموضوع أكبر من الإطار)';
       }
-      det[i * 3 + c] = cnt ? src[i * 4 + c] - s / cnt : 0;
     }
-  }
-  let sumL = 0, cntL = 0;
-  for (let i = 0; i < N; i++) if (src[i * 4 + 3] > 40) { sumL += 0.299 * src[i * 4] + 0.587 * src[i * 4 + 1] + 0.114 * src[i * 4 + 2]; cntL++; }
-  let pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
-  if (aiUsed) {                                            // مع الذكاء الاصطناعي: نقطة التباين تتحسب من الموضوع نفسه مش الخلفية
-    let ws = 0, wl = 0;
-    for (let yy = 0; yy < OUT; yy++) for (let xx = 0; xx < OUT; xx++) {
-      const si = Math.min(hc - 1, Math.floor(by + (yy + 0.5) / OUT * sz)) * wc + Math.min(wc - 1, Math.floor(bx + (xx + 0.5) / OUT * sz));
-      const wgt = S[si], j4 = (yy * OUT + xx) * 4;
-      if (wgt > 0.2 && src[j4 + 3] > 40) { ws += wgt; wl += wgt * (0.299 * src[j4] + 0.587 * src[j4 + 1] + 0.114 * src[j4 + 2]); }
-    }
-    if (ws > 50) pivot = Math.min(166, Math.max(90, wl / ws));
-  }
+    const cov = hasSubject ? Math.min(1, massRect(wx0, wy0, wside) / total) : 1;
+    const fill = hasSubject ? Math.min(1, Math.max(bw, bh) / wside) : 0.85;
 
-  const render = (con, sat, shp, target) => {
-    const o = target || new Uint8ClampedArray(src.length);
-    for (let i = 0; i < N; i++) {
-      const j = i * 4; o[j + 3] = src[j + 3];
-      if (!src[j + 3]) { o[j] = o[j + 1] = o[j + 2] = 0; continue; }
-      const r = src[j] + shp * det[i * 3], g = src[j + 1] + shp * det[i * 3 + 1], b = src[j + 2] + shp * det[i * 3 + 2];
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      o[j] = (gray + (r - gray) * sat - pivot) * con + pivot;
-      o[j + 1] = (gray + (g - gray) * sat - pivot) * con + pivot;
-      o[j + 2] = (gray + (b - gray) * sat - pivot) * con + pivot;
+    // 2) نقص من الصورة الأصلية ونصغّر على مراحل لـ 256×256
+    const sidePx = Math.max(8, Math.round(wside * sc));
+    const r = Math.min(1, 1536 / sidePx);
+    const S1 = Math.max(8, Math.round(sidePx * r));
+    let cur = document.createElement('canvas'); cur.width = S1; cur.height = S1;
+    const cc = cur.getContext('2d');
+    cc.imageSmoothingEnabled = true; cc.imageSmoothingQuality = 'high';
+    if (padded && !alphaMode) { cc.fillStyle = padColor; cc.fillRect(0, 0, S1, S1); }
+    cc.drawImage(img, -Math.round(wx0 * sc) * r, -Math.round(wy0 * sc) * r, w * r, h * r);
+    let size = S1;
+    const lowRes = sidePx < 200;
+    while (size / 2 > OUT) {
+      const nx = document.createElement('canvas'); const ns = Math.max(OUT, Math.floor(size / 2));
+      nx.width = ns; nx.height = ns;
+      const c = nx.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      c.drawImage(cur, 0, 0, ns, ns); cur = nx; size = ns;
     }
-    return o;
+    while (size * 2 < OUT) {                                // صورة صغيرة: نكبّرها على مراحل بدل مرة واحدة
+      const nx = document.createElement('canvas'); const ns = size * 2;
+      nx.width = ns; nx.height = ns;
+      const c = nx.getContext('2d'); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      c.drawImage(cur, 0, 0, ns, ns); cur = nx; size = ns;
+    }
+    const base = document.createElement('canvas'); base.width = OUT; base.height = OUT;
+    const bctx = base.getContext('2d', { willReadFrequently: true });
+    bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
+    bctx.drawImage(cur, 0, 0, OUT, OUT);
+    const src = bctx.getImageData(0, 0, OUT, OUT).data;
+
+    // 3) فحص جودة الصورة نفسها: ضبابية؟ صغيرة؟
+    const gl = [];
+    const lum = (i) => 0.299 * src[i * 4] + 0.587 * src[i * 4 + 1] + 0.114 * src[i * 4 + 2];
+    for (let y = 0; y < OUT - 1; y++) for (let x = 0; x < OUT - 1; x++) {
+      const i = y * OUT + x;
+      if (src[i * 4 + 3] < 40) continue;
+      gl.push(Math.abs(lum(i + 1) - lum(i)) + Math.abs(lum(i + OUT) - lum(i)));
+    }
+    gl.sort((p, q) => p - q);
+    const blurry = gl.length > 200 && gl[Math.floor(gl.length * 0.985)] < 16;   // أقوى الحواف في الصورة ضعيفة = صورة مش حادة
+    const strong = cfg.ext || lowRes || blurry;
+
+    // 4) تفاصيل الحدّة (الأصلي - تغبيش 3×3)
+    const det = new Float32Array(N * 3);
+    for (let y = 0; y < OUT; y++) for (let x = 0; x < OUT; x++) {
+      const i = y * OUT + x;
+      for (let c = 0; c < 3; c++) {
+        let s = 0, cnt = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < OUT && yy < OUT && src[(yy * OUT + xx) * 4 + 3] > 40) { s += src[(yy * OUT + xx) * 4 + c]; cnt++; }
+        }
+        det[i * 3 + c] = cnt ? src[i * 4 + c] - s / cnt : 0;
+      }
+    }
+    let sumL = 0, cntL = 0;
+    for (let i = 0; i < N; i++) if (src[i * 4 + 3] > 40) { sumL += lum(i); cntL++; }
+    let pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
+    if (aiUsed || hasSubject) {                              // نقطة التباين من الموضوع نفسه مش الخلفية
+      let ws = 0, wl = 0;
+      for (let yy = 0; yy < OUT; yy++) for (let xx = 0; xx < OUT; xx++) {
+        const gx = Math.floor(wx0 + (xx + 0.5) / OUT * wside), gy = Math.floor(wy0 + (yy + 0.5) / OUT * wside);
+        if (gx < 0 || gy < 0 || gx >= wc || gy >= hc) continue;
+        const wgt = S[gy * wc + gx], p4 = (yy * OUT + xx) * 4;
+        if (wgt > 0.2 && src[p4 + 3] > 40) { ws += wgt; wl += wgt * lum(yy * OUT + xx); }
+      }
+      if (ws > 50) pivot = Math.min(166, Math.max(90, wl / ws));
+    }
+    const render = (con, sat, shp, target) => {
+      const o = target || new Uint8ClampedArray(src.length);
+      for (let i = 0; i < N; i++) {
+        const j4 = i * 4; o[j4 + 3] = src[j4 + 3];
+        if (!src[j4 + 3]) { o[j4] = o[j4 + 1] = o[j4 + 2] = 0; continue; }
+        const rr = src[j4] + shp * det[i * 3], gg = src[j4 + 1] + shp * det[i * 3 + 1], bb = src[j4 + 2] + shp * det[i * 3 + 2];
+        const gray = 0.299 * rr + 0.587 * gg + 0.114 * bb;
+        o[j4] = (gray + (rr - gray) * sat - pivot) * con + pivot;
+        o[j4 + 1] = (gray + (gg - gray) * sat - pivot) * con + pivot;
+        o[j4 + 2] = (gray + (bb - gray) * sat - pivot) * con + pivot;
+      }
+      return o;
+    };
+
+    // 5) مقياس الوضوح بالأحجام الحقيقية: 20 (صغير) و32 (متوسط) و64 (كبير)
+    const tmp = document.createElement('canvas'); tmp.width = OUT; tmp.height = OUT;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    const sizes = [[20, 0.5], [32, 0.3], [64, 0.2]];
+    const bgs = alphaMode || padded ? [[49, 51, 56], [242, 243, 245]] : [[49, 51, 56]];
+    const sat1 = v => Math.min(1, Math.max(0, v));
+    const legib = (px) => {
+      tctx.putImageData(new ImageData(new Uint8ClampedArray(px), OUT, OUT), 0, 0);
+      let score = 0, l20 = 0;
+      for (const [s, wt] of sizes) {
+        const c = document.createElement('canvas'); c.width = s; c.height = s;
+        const c2 = c.getContext('2d', { willReadFrequently: true });
+        c2.imageSmoothingEnabled = true; c2.imageSmoothingQuality = 'high';
+        let worst = 9;
+        for (const bgc of bgs) {
+          c2.fillStyle = `rgb(${bgc[0]},${bgc[1]},${bgc[2]})`; c2.fillRect(0, 0, s, s);
+          c2.drawImage(tmp, 0, 0, s, s);
+          const q = c2.getImageData(0, 0, s, s).data;
+          const l = new Float32Array(s * s);
+          let mean = 0, clip = 0;
+          for (let i = 0; i < s * s; i++) {
+            l[i] = 0.299 * q[i * 4] + 0.587 * q[i * 4 + 1] + 0.114 * q[i * 4 + 2]; mean += l[i];
+            if (l[i] < 4 || l[i] > 251) clip++;
+          }
+          mean /= s * s; clip /= s * s;
+          let v = 0, gs = 0;
+          for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
+            const i = y * s + x; v += (l[i] - mean) * (l[i] - mean);
+            if (x + 1 < s) gs += Math.abs(l[i + 1] - l[i]);
+            if (y + 1 < s) gs += Math.abs(l[i + s] - l[i]);
+          }
+          const sd = Math.sqrt(v / (s * s)), gm = gs / (2 * s * s);
+          const sc2 = 0.5 * sat1(sd / 42) + 0.5 * sat1(gm / 9) - 4 * Math.max(0, clip - 0.015);
+          if (sc2 < worst) worst = sc2;
+        }
+        score += wt * worst;
+        if (s === 20) l20 = worst;
+      }
+      return [score, l20];
+    };
+
+    // 6) نجرّب كل التركيبات ونختار الأحسن
+    const CON = [1.0, 1.06, 1.12, 1.18, 1.25, 1.33, 1.42, 1.6, 1.8, 2.1, 2.5];
+    const SAT = [1.0, 1.1, 1.2];
+    const SHP = blurry ? [1.0, 1.5, 2.0, 2.5] : strong ? [0, 0.5, 1.0, 1.5, 2.0] : [0, 0.5, 1.0];
+    const buf = new Uint8ClampedArray(src.length);
+    let best = { sc: -9, con: 1, sat: 1, shp: 0, l20: 0 };
+    for (const con of CON) for (const sat of SAT) for (const shp of SHP) {
+      render(con, sat, shp, buf);
+      const cost = 0.30 * (con - 1) * (con - 1) + 0.05 * (sat - 1) / 0.2 + 0.04 * shp;
+      const [lg, l20] = legib(buf);
+      if (lg - cost > best.sc) best = { sc: lg - cost, con, sat, shp, l20 };
+    }
+    const outPx = render(best.con, best.sat, best.shp);
+    const out = document.createElement('canvas'); out.width = OUT; out.height = OUT;
+    out.getContext('2d').putImageData(new ImageData(outPx, OUT, OUT), 0, 0);
+    // 7) فحص النتيجة: الموضوع كله جوه الإطار؟ حجمه مناسب؟ واضح بالحجم الصغير؟
+    const ok = cov >= 0.97 && fill >= 0.42 && best.l20 >= 0.45;
+    return { out, ok, score: best.sc + (cov >= 0.97 ? 0.5 : 0) + (fill >= 0.42 ? 0.3 : 0),
+      info: { ai: aiUsed, crop: note, con: best.con, sat: best.sat, shp: best.shp, cov, fill, l20: best.l20, lowRes, blurry } };
   };
 
-  // ---- هـ) مقياس الوضوح بالأحجام الحقيقية: 20 (صغير) و32 (متوسط) و64 (كبير) ----
-  const tmp = document.createElement('canvas'); tmp.width = OUT; tmp.height = OUT;
-  const tctx = tmp.getContext('2d', { willReadFrequently: true });
-  const sizes = [[20, 0.5], [32, 0.3], [64, 0.2]];
-  const bgs = alphaMode ? [[49, 51, 56], [242, 243, 245]] : [[49, 51, 56]];
-  const sat1 = v => Math.min(1, Math.max(0, v));
-  const legib = (px) => {
-    tctx.putImageData(new ImageData(new Uint8ClampedArray(px), OUT, OUT), 0, 0);
-    let score = 0;
-    for (const [s, wt] of sizes) {
-      const c = document.createElement('canvas'); c.width = s; c.height = s;
-      const cc = c.getContext('2d', { willReadFrequently: true });
-      cc.imageSmoothingEnabled = true; cc.imageSmoothingQuality = 'high';
-      let worst = 9;
-      for (const bgc of bgs) {
-        cc.fillStyle = `rgb(${bgc[0]},${bgc[1]},${bgc[2]})`; cc.fillRect(0, 0, s, s);
-        cc.drawImage(tmp, 0, 0, s, s);
-        const q = cc.getImageData(0, 0, s, s).data;
-        const l = new Float32Array(s * s);
-        let mean = 0, clip = 0;
-        for (let i = 0; i < s * s; i++) {
-          l[i] = 0.299 * q[i * 4] + 0.587 * q[i * 4 + 1] + 0.114 * q[i * 4 + 2]; mean += l[i];
-          if (l[i] < 4 || l[i] > 251) clip++;
-        }
-        mean /= s * s; clip /= s * s;
-        let v = 0, gsum = 0;
-        for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
-          const i = y * s + x; v += (l[i] - mean) * (l[i] - mean);
-          if (x + 1 < s) gsum += Math.abs(l[i + 1] - l[i]);
-          if (y + 1 < s) gsum += Math.abs(l[i + s] - l[i]);
-        }
-        const sd = Math.sqrt(v / (s * s)), gm = gsum / (2 * s * s);
-        const sc2 = 0.5 * sat1(sd / 42) + 0.5 * sat1(gm / 9) - 4 * Math.max(0, clip - 0.015);
-        if (sc2 < worst) worst = sc2;
-      }
-      score += wt * worst;
-    }
-    return score;
-  };
-
-  // ---- و) نجرّب كل التركيبات ونختار الأحسن ----
-  const CON = [1.0, 1.06, 1.12, 1.18, 1.25, 1.33, 1.42, 1.6, 1.8, 2.1, 2.5], SAT = [1.0, 1.1, 1.2], SHP = [0, 0.5, 1.0];
-  const buf = new Uint8ClampedArray(src.length);
-  let best = { sc: -9, con: 1, sat: 1, shp: 0 };
-  for (const con of CON) for (const sat of SAT) for (const shp of SHP) {
-    render(con, sat, shp, buf);
-    const cost = 0.30 * (con - 1) * (con - 1) + 0.05 * (sat - 1) / 0.2 + 0.04 * shp;
-    const sc3 = legib(buf) - cost;
-    if (sc3 > best.sc) best = { sc: sc3, con, sat, shp };
+  // نكرر المحاولة (إطار أضيق وحدّة أقوى) لحد ما النتيجة تعدّي الفحص، وآخرها نختار الأحسن
+  const tries = [{ margin: 0.07, ext: false }, { margin: 0.04, ext: true }, { margin: 0.10, ext: true }];
+  let bestRun = null, used = 0;
+  for (const cfg of tries) {
+    const run = attempt(cfg); used++;
+    if (!bestRun || (run.ok && !bestRun.ok) || (run.ok === bestRun.ok && run.score > bestRun.score)) bestRun = run;
+    if (run.ok) break;
+    await new Promise(r => setTimeout(r, 0));               // نسيب المتصفح يتنفس بين المحاولات
   }
-  const outPx = render(best.con, best.sat, best.shp);
-  const out = document.createElement('canvas'); out.width = OUT; out.height = OUT;
-  out.getContext('2d').putImageData(new ImageData(outPx, OUT, OUT), 0, 0);
-  roleInfo = { ai: aiUsed, crop: cropNote, con: best.con, sat: best.sat, shp: best.shp };
-  return out;
+  roleInfo = Object.assign({ tries: used, ok: bestRun.ok }, bestRun.info);
+  return bestRun.out;
 }
 
 // (قديم، مش مستخدم) نفس معالجة أداة البوت لأيقونة الرول: قص مربع من النص، زوم 15% جوه الصورة، تصغير لـ 256×256، وتباين +0.15
