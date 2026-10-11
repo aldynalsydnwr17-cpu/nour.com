@@ -139,7 +139,7 @@ function process(src) {
       afterCanvas.getContext('2d').drawImage(outCanvas, 0, 0);
 
       dims.textContent = `الحجم الأصلي: ${w}×${h}  —  بعد التقريب: ${outCanvas.width}×${outCanvas.height}${bgNote}`;
-      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.ai ? 'بالذكاء الاصطناعي · ' : ''}${roleInfo.crop} (الموضوع ${Math.round(roleInfo.fill * 100)}% من الإطار) · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}${roleInfo.lowRes ? ' · الصورة صغيرة وكبّرتها' : ''}${roleInfo.blurry ? ' · الصورة مش حادة وزوّدت الحدّة' : ''} · ${roleInfo.ok ? (roleInfo.tries > 1 ? 'اتحققت بعد ' + roleInfo.tries + ' محاولات' : 'اتحققت من أول محاولة') : 'جرّبت ' + roleInfo.tries + ' محاولات واخترت الأحسن (الصورة نفسها صعبة بالحجم الصغير)'}`;
+      if (roleOpt.checked && roleInfo) dims.textContent += `  —  ${roleInfo.ai ? 'بالذكاء الاصطناعي · ' : ''}${roleInfo.crop} (الموضوع ${Math.round(roleInfo.fill * 100)}% من الإطار) · تباين ×${roleInfo.con} · تشبع ×${roleInfo.sat} · حدّة ${roleInfo.shp}${roleInfo.md ? ' + حدّة للأحجام الصغيرة ' + roleInfo.md : ''}${roleInfo.lowRes ? ' · الصورة صغيرة وكبّرتها' : ''}${roleInfo.blurry ? ' · الصورة مش حادة وزوّدت الحدّة' : ''} · ${roleInfo.ok ? (roleInfo.tries > 1 ? 'اتحققت بعد ' + roleInfo.tries + ' محاولات' : 'اتحققت من أول محاولة') : 'جرّبت ' + roleInfo.tries + ' محاولات واخترت الأحسن (الصورة نفسها صعبة بالحجم الصغير)'}`;
       previewRow.style.display = 'flex'; renderRolePreview(outCanvas); if (!holdCmp) setCmp(50);
       resetBtn.style.display = 'inline-block';
 
@@ -404,6 +404,33 @@ async function smartRole(img) {
         det[i * 3 + c] = cnt ? src[i * 4 + c] - s / cnt : 0;
       }
     }
+    // تفاصيل متوسطة الحجم (هي اللي بتبان لما ديسكورد يصغّر لـ20/32): unsharp بنصف قطر كبير
+    const mdet = new Float32Array(N * 3);
+    {
+      const R = 5, tmpA = new Float32Array(N * 4), tmpB = new Float32Array(N * 4);
+      for (let i = 0; i < N; i++) { const a = src[i * 4 + 3] > 40 ? 1 : 0; tmpA[i * 4] = src[i * 4] * a; tmpA[i * 4 + 1] = src[i * 4 + 1] * a; tmpA[i * 4 + 2] = src[i * 4 + 2] * a; tmpA[i * 4 + 3] = a; }
+      const pass = (inp, out, horiz) => {
+        for (let y = 0; y < OUT; y++) for (let x = 0; x < OUT; x++) {
+          let r = 0, g = 0, b = 0, w = 0;
+          for (let k = -R; k <= R; k++) {
+            const xx = horiz ? x + k : x, yy = horiz ? y : y + k;
+            if (xx < 0 || yy < 0 || xx >= OUT || yy >= OUT) continue;
+            const q = (yy * OUT + xx) * 4; r += inp[q]; g += inp[q + 1]; b += inp[q + 2]; w += inp[q + 3];
+          }
+          const o = (y * OUT + x) * 4; out[o] = r; out[o + 1] = g; out[o + 2] = b; out[o + 3] = w;
+        }
+      };
+      pass(tmpA, tmpB, true);
+      // نرجّع كل صف لمتوسط مرجّح بعد الباس الأفقي
+      for (let i = 0; i < N; i++) { const w = tmpB[i * 4 + 3]; if (w > 0) { tmpB[i * 4] /= w; tmpB[i * 4 + 1] /= w; tmpB[i * 4 + 2] /= w; } tmpB[i * 4 + 3] = w > 0 ? 1 : 0; }
+      for (let i = 0; i < N; i++) { const a = tmpB[i * 4 + 3]; tmpB[i * 4] *= a; tmpB[i * 4 + 1] *= a; tmpB[i * 4 + 2] *= a; }
+      pass(tmpB, tmpA, false);
+      for (let i = 0; i < N; i++) {
+        if (src[i * 4 + 3] <= 40) continue;
+        const w = tmpA[i * 4 + 3]; if (w <= 0) continue;
+        for (let c = 0; c < 3; c++) mdet[i * 3 + c] = src[i * 4 + c] - tmpA[i * 4 + c] / w;
+      }
+    }
     let sumL = 0, cntL = 0;
     for (let i = 0; i < N; i++) if (src[i * 4 + 3] > 40) { sumL += lum(i); cntL++; }
     let pivot = Math.min(166, Math.max(90, cntL ? sumL / cntL : 128));
@@ -417,12 +444,12 @@ async function smartRole(img) {
       }
       if (ws > 50) pivot = Math.min(166, Math.max(90, wl / ws));
     }
-    const render = (con, sat, shp, target) => {
+    const render = (con, sat, shp, target, md = 0) => {
       const o = target || new Uint8ClampedArray(src.length);
       for (let i = 0; i < N; i++) {
         const j4 = i * 4; o[j4 + 3] = src[j4 + 3];
         if (!src[j4 + 3]) { o[j4] = o[j4 + 1] = o[j4 + 2] = 0; continue; }
-        const rr = src[j4] + shp * det[i * 3], gg = src[j4 + 1] + shp * det[i * 3 + 1], bb = src[j4 + 2] + shp * det[i * 3 + 2];
+        const rr = src[j4] + shp * det[i * 3] + md * mdet[i * 3], gg = src[j4 + 1] + shp * det[i * 3 + 1] + md * mdet[i * 3 + 1], bb = src[j4 + 2] + shp * det[i * 3 + 2] + md * mdet[i * 3 + 2];
         const gray = 0.299 * rr + 0.587 * gg + 0.114 * bb;
         o[j4] = (gray + (rr - gray) * sat - pivot) * con + pivot;
         o[j4 + 1] = (gray + (gg - gray) * sat - pivot) * con + pivot;
@@ -477,20 +504,28 @@ async function smartRole(img) {
     const SAT = [1.0, 1.1, 1.2];
     const SHP = blurry ? [1.0, 1.5, 2.0, 2.5] : strong ? [0, 0.5, 1.0, 1.5, 2.0] : [0, 0.5, 1.0];
     const buf = new Uint8ClampedArray(src.length);
-    let best = { sc: -9, con: 1, sat: 1, shp: 0, l20: 0 };
+    let best = { sc: -9, con: 1, sat: 1, shp: 0, md: 0, l20: 0 };
+    const MD = [0, 0.5, 0.9, 1.3, 1.7];
     for (const con of CON) for (const sat of SAT) for (const shp of SHP) {
-      render(con, sat, shp, buf);
+      render(con, sat, shp, buf, 0);
       const cost = 0.30 * (con - 1) * (con - 1) + 0.05 * (sat - 1) / 0.2 + 0.04 * shp;
       const [lg, l20] = legib(buf);
-      if (lg - cost > best.sc) best = { sc: lg - cost, con, sat, shp, l20 };
+      if (lg - cost > best.sc) best = { sc: lg - cost, con, sat, shp, md: 0, l20 };
     }
-    const outPx = render(best.con, best.sat, best.shp);
+    for (const md of MD) {                                   // مرحلة تانية: حدّة متوسطة لأحجام 20/32
+      if (!md) continue;
+      render(best.con, best.sat, best.shp, buf, md);
+      const cost = 0.30 * (best.con - 1) * (best.con - 1) + 0.05 * (best.sat - 1) / 0.2 + 0.04 * best.shp + 0.05 * md;
+      const [lg, l20] = legib(buf);
+      if (lg - cost > best.sc) best = Object.assign({}, best, { sc: lg - cost, md, l20 });
+    }
+    const outPx = render(best.con, best.sat, best.shp, null, best.md);
     const out = document.createElement('canvas'); out.width = OUT; out.height = OUT;
     out.getContext('2d').putImageData(new ImageData(outPx, OUT, OUT), 0, 0);
     // 7) فحص النتيجة: الموضوع كله جوه الإطار؟ حجمه مناسب؟ واضح بالحجم الصغير؟
     const ok = cov >= 0.97 && fill >= 0.42 && best.l20 >= 0.45;
     return { out, ok, score: best.sc + (cov >= 0.97 ? 0.5 : 0) + (fill >= 0.42 ? 0.3 : 0),
-      info: { ai: aiUsed, crop: note, con: best.con, sat: best.sat, shp: best.shp, cov, fill, l20: best.l20, lowRes, blurry } };
+      info: { ai: aiUsed, crop: note, con: best.con, sat: best.sat, shp: best.shp, md: best.md, cov, fill, l20: best.l20, lowRes, blurry } };
   };
 
   // نكرر المحاولة (إطار أضيق وحدّة أقوى) لحد ما النتيجة تعدّي الفحص، وآخرها نختار الأحسن
@@ -879,17 +914,51 @@ cmp.addEventListener('input', () => setCmp(cmp.value));
 
 // ===== معاينة الرول =====
 let rpSrc = null;
+// بيرسم الأيقونة بحجم CSS معيّن وبدقة شاشة الجهاز الحقيقية، وبيصغّر على مراحل ويزوّد حدّة خفيفة
+// عشان الأيقونة الصغيرة (20 بكسل) متبانش مبهدلة أو مشوشة
+function drawRoleIcon(c, src, cssSize) {
+  const dpr = Math.min(4, Math.max(2, window.devicePixelRatio || 1));
+  const px = Math.round(cssSize * dpr);
+  c.style.width = cssSize + 'px'; c.style.height = cssSize + 'px';
+  c.width = px; c.height = px;
+  let cur = src, size = src.width;
+  while (size / 2 > px) {                                  // تصغير على مراحل: 256 ← 128 ← 64 ...
+    const ns = Math.max(px, Math.floor(size / 2));
+    const t = document.createElement('canvas'); t.width = ns; t.height = ns;
+    const tx = t.getContext('2d');
+    tx.imageSmoothingEnabled = true; tx.imageSmoothingQuality = 'high';
+    tx.drawImage(cur, 0, 0, ns, ns); cur = t; size = ns;
+  }
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.clearRect(0, 0, px, px);
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(cur, 0, 0, px, px);
+  if (cssSize <= 40) {                                      // حدّة خفيفة للأحجام الصغيرة
+    const id = x.getImageData(0, 0, px, px), d = id.data, o = new Uint8ClampedArray(d);
+    const amt = cssSize <= 24 ? 0.55 : 0.35;
+    for (let yy = 0; yy < px; yy++) for (let xx = 0; xx < px; xx++) {
+      const i = (yy * px + xx) * 4;
+      if (o[i + 3] < 8) continue;
+      for (let k = 0; k < 3; k++) {
+        let s = 0, n = 0;
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          const X = xx + dx, Y = yy + dy;
+          if (X < 0 || Y < 0 || X >= px || Y >= px) continue;
+          const j = (Y * px + X) * 4;
+          if (o[j + 3] > 40) { s += o[j + k]; n++; }
+        }
+        if (n) { const v = o[i + k] + amt * (o[i + k] - s / n); d[i + k] = v < 0 ? 0 : v > 255 ? 255 : v; }
+      }
+    }
+    x.putImageData(id, 0, 0);
+  }
+}
 function renderRolePreview(src) {
   const box = document.getElementById('rolePrev');
   if (!roleOpt.checked) { box.style.display = 'none'; return; }
   rpSrc = src;
   box.style.display = 'block';
-  box.querySelectorAll('canvas[data-rp]').forEach(c => {
-    const n = +c.dataset.rp, x = c.getContext('2d');
-    x.clearRect(0, 0, n, n);
-    x.imageSmoothingQuality = 'high';
-    x.drawImage(src, 0, 0, n, n);
-  });
+  box.querySelectorAll('canvas[data-rp]').forEach(c => drawRoleIcon(c, src, +c.dataset.rp));
 }
 // تعديل الاسم واليوزر والتاج واللون في المعاينة
 (function () {
