@@ -1634,9 +1634,9 @@ xDownload.addEventListener('click', () => {
 });
 
 // ===== رابط إزالة الخلفية (بيظهر لو الصورة خلفيتها مش شفافة) =====
-const BGRM_URL = 'https://www.adobe.com/express/feature/image/remove-background';
+const BGRM_URL = 'https://www.iloveimg.com/ar/remove-background';
 document.querySelectorAll('.bgrm-slot').forEach(s => {
-  s.innerHTML = '<div class="bgrm" style="display:none"><span class="bgi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg></span><p>الصورة دي خلفيتها مش شفافة. شيل الخلفية الأول من الموقع ده وبعدين ارفعها هنا.</p><a href="' + BGRM_URL + '" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Adobe Express</a><small>موقع إزالة خلفية</small></div>';
+  s.innerHTML = '<div class="bgrm" style="display:none"><span class="bgi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg></span><p>الصورة دي خلفيتها مش شفافة. شيل الخلفية الأول من الموقع ده وبعدين ارفعها هنا.</p><a href="' + BGRM_URL + '" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>iLoveIMG</a><small>موقع إزالة خلفية</small></div>';
 });
 function showBgRm(slotId, on) { const b = document.querySelector('#' + slotId + ' .bgrm'); if (b) b.style.display = on ? 'block' : 'none'; }
 
@@ -1788,6 +1788,7 @@ wireDrop(document.getElementById('ckDrop'), document.getElementById('ckInput'), 
   document.getElementById('ckWrap').style.display = 'flex';
   const p1 = ckBusy.play([{ t: `بقرا الأيقونة… ${w}×${h}`, ms: 900 }, { t: 'بقيس المقاس والخلفية والإطار…', ms: 1300 }, { t: 'بفحص الوضوح بأحجام 20 و32 و64…', ms: 1300 }]);
   const before = ckMetrics(img), bChecks = ckChecks(before, file.size);
+  showBgRm('ckBgSlot', !before.hasAlpha);                      // الرابط يظهر فورًا تحت الصورة لو فيها خلفية
   await p1; if (my !== ckRun) return;
   const ox = ckOver.getContext('2d');
   if (!before.full) {                                          // مربع بيبيّن مكان الموضوع اللي الأداة لقته
@@ -1796,7 +1797,6 @@ wireDrop(document.getElementById('ckDrop'), document.getElementById('ckInput'), 
   }
   const rows = [];
   for (const c of bChecks) { const li = ckRow(c); ckList.appendChild(li); rows.push(li); await ckWait(320); if (my !== ckRun) return; }
-  showBgRm('ckBgSlot', before.solidBg);
   const bad = bChecks.filter(c => c.lv !== 'ok' && c.k !== 'file' && c.k !== 'bg');
   let finalCanvas = null, useFixed = false, summary = '', aChecks = null, after = null;
   ckDrawSizes('ckBefore', before.sq);
