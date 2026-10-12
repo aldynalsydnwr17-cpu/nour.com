@@ -104,6 +104,7 @@ function process(src) {
       const data0 = tctx.getImageData(0, 0, w, h); // نسخة أصلية لقراءة لون الخلفية
 
       let hasAlpha = checkHasAlpha(data);
+      showBgRm('bgRmSlot', roleOpt.checked && !hasAlpha);
       let bg = hasAlpha ? null : sampleCorners(data, w, h);
       let srcImg = img, bgNote = '';
 
@@ -1632,12 +1633,225 @@ xDownload.addEventListener('click', () => {
   }, 40);
 });
 
+// ===== رابط إزالة الخلفية (بيظهر لو الصورة خلفيتها مش شفافة) =====
+const BGRM_URL = 'https://www.adobe.com/express/feature/image/remove-background';
+document.querySelectorAll('.bgrm-slot').forEach(s => {
+  s.innerHTML = '<div class="bgrm" style="display:none"><span class="bgi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg></span><p>الصورة دي خلفيتها مش شفافة. شيل الخلفية الأول من الموقع ده وبعدين ارفعها هنا.</p><a href="' + BGRM_URL + '" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Adobe Express</a><small>موقع إزالة خلفية</small></div>';
+});
+function showBgRm(slotId, on) { const b = document.querySelector('#' + slotId + ' .bgrm'); if (b) b.style.display = on ? 'block' : 'none'; }
+
+// ===== فاحص الأيقونة =====
+const ckBusy = busyKit(document.getElementById('ckBusy'));
+const ckList = document.getElementById('ckList'), ckVerdict = document.getElementById('ckVerdict');
+const ckCanvas = document.getElementById('ckCanvas'), ckOver = document.getElementById('ckOver');
+const ckDownload = document.getElementById('ckDownload');
+let ckRun = 0, ckFinal = null;
+const CK_ICON = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
+  bad: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>'
+};
+const CK_K = {
+  size: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/>',
+  bg: '<rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/>',
+  frame: '<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3"/>',
+  sharp: '<path d="m12 3 2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
+  color: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2.2-.6-1.3.2-2.8 1.7-2.8H17a4 4 0 0 0 4-4c0-4.4-4-9-9-9z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  small: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>'
+};
+const ckSvg = k => '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + CK_K[k] + '</svg>';
+const ckPct = v => Math.round(Math.max(0, Math.min(1, v)) * 100);
+
+// قياسات الأيقونة: مقاس، شفافية، موضوع وإطار، حدة، ألوان، ووضوح بأحجام ديسكورد
+function ckMetrics(src) {
+  const sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+  const k = Math.min(1, 256 / Math.max(sw, sh));
+  const w = Math.max(8, Math.round(sw * k)), h = Math.max(8, Math.round(sh * k)), n = w * h;
+  const o = document.createElement('canvas'); o.width = w; o.height = h;
+  const ox = o.getContext('2d', { willReadFrequently: true });
+  ox.imageSmoothingQuality = 'high'; ox.drawImage(src, 0, 0, w, h);
+  const d = ox.getImageData(0, 0, w, h).data;
+  let tr = 0; for (let i = 0; i < n; i++) if (d[i * 4 + 3] < 250) tr++;
+  const hasAlpha = tr > 20;
+  const cp = [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3]].map(([x, y]) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2]]; });
+  const bg = [0, 1, 2].map(c => (cp[0][c] + cp[1][c] + cp[2][c] + cp[3][c]) / 4);
+  let spread = 0; cp.forEach(a => cp.forEach(b => { spread = Math.max(spread, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])); }));
+  const solidBg = !hasAlpha && spread < 30;
+  const mask = new Uint8Array(n); let mc = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
+  const L = new Float32Array(n);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, j = i * 4;
+    L[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+    const m = hasAlpha ? d[j + 3] > 40 : solidBg ? Math.hypot(d[j] - bg[0], d[j + 1] - bg[1], d[j + 2] - bg[2]) > 34 : true;
+    if (m) { mask[i] = 1; mc++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < 0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  const fill = Math.max(bw, bh) / Math.max(w, h);
+  const full = mc > n * 0.97;
+  const edge = (x0 <= 1) + (y0 <= 1) + (x1 >= w - 2) + (y1 >= h - 2);
+  const off = Math.hypot((x0 + x1 + 1) / 2 - w / 2, (y0 + y1 + 1) / 2 - h / 2) / Math.max(w, h);
+  let sumL = 0, cnt = 0, clip = 0;
+  const hist = new Uint32Array(256); let gc = 0;
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) {
+    const i = y * w + x; if (!mask[i]) continue;
+    sumL += L[i]; cnt++; if (L[i] < 4 || L[i] > 251) clip++;
+    hist[Math.min(255, Math.round(Math.abs(L[i + 1] - L[i]) + Math.abs(L[i + w] - L[i])))]++; gc++;
+  }
+  let p98 = 0; { let acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= gc * 0.985) { p98 = v; break; } } }
+  // نسخة مربعة 256 (الأيقونة كلها جوه مربع) لقياس الوضوح
+  const sq = document.createElement('canvas'); sq.width = sq.height = 256;
+  const sx = sq.getContext('2d'); sx.imageSmoothingQuality = 'high';
+  const kk = 256 / Math.max(sw, sh); sx.drawImage(src, (256 - sw * kk) / 2, (256 - sh * kk) / 2, sw * kk, sh * kk);
+  const bgs = (hasAlpha || sw !== sh) ? [[49, 51, 56], [242, 243, 245]] : [[49, 51, 56]];
+  const sat1 = v => Math.min(1, Math.max(0, v));
+  const leg = {};
+  for (const s of [20, 32, 64]) {
+    const c = document.createElement('canvas'); c.width = c.height = s;
+    const c2 = c.getContext('2d', { willReadFrequently: true }); c2.imageSmoothingQuality = 'high';
+    let worst = 9;
+    for (const b of bgs) {
+      c2.fillStyle = `rgb(${b[0]},${b[1]},${b[2]})`; c2.fillRect(0, 0, s, s); c2.drawImage(sq, 0, 0, s, s);
+      const q = c2.getImageData(0, 0, s, s).data, l = new Float32Array(s * s);
+      let mean = 0, cl = 0;
+      for (let i = 0; i < s * s; i++) { l[i] = 0.299 * q[i * 4] + 0.587 * q[i * 4 + 1] + 0.114 * q[i * 4 + 2]; mean += l[i]; if (l[i] < 4 || l[i] > 251) cl++; }
+      mean /= s * s; cl /= s * s;
+      let v = 0, gs = 0;
+      for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
+        const i = y * s + x; v += (l[i] - mean) * (l[i] - mean);
+        if (x + 1 < s) gs += Math.abs(l[i + 1] - l[i]); if (y + 1 < s) gs += Math.abs(l[i + s] - l[i]);
+      }
+      const sc = 0.5 * sat1(Math.sqrt(v / (s * s)) / 42) + 0.5 * sat1(gs / (2 * s * s) / 9) - 4 * Math.max(0, cl - 0.015);
+      if (sc < worst) worst = sc;
+    }
+    leg[s] = worst;
+  }
+  return { sw, sh, hasAlpha, solidBg, full, fill, edge, off, meanL: cnt ? sumL / cnt : 128, clip: cnt ? clip / cnt : 0, p98, leg, sq,
+    box: { x: x0 / w, y: y0 / h, w: bw / w, h: bh / h } };
+}
+
+function ckChecks(m, size) {
+  const out = [];
+  const mn = Math.min(m.sw, m.sh), square = Math.abs(m.sw - m.sh) / Math.max(m.sw, m.sh) <= 0.02;
+  out.push({ k: 'size', t: 'المقاس', lv: mn < 64 ? 'bad' : (!square || mn < 128) ? 'warn' : 'ok',
+    d: `\u2066${m.sw}×${m.sh}\u2069` + (mn < 64 ? ' — صغيرة أوي، ديسكورد بيطلب 64×64 على الأقل' : !square ? ' — مش مربعة وديسكورد هيقصها أو يبوّظ شكلها' : mn < 128 ? ' — صغيرة شوية وهتتكبّر' : ' — مقاس كويس') });
+  out.push({ k: 'file', t: 'حجم الملف', lv: size > 256 * 1024 ? 'bad' : size > 200 * 1024 ? 'warn' : 'ok',
+    d: '\u2066' + fmtSize(size) + '\u2069' + (size > 256 * 1024 ? ' — أكبر من حد ديسكورد (256KB)' : size > 200 * 1024 ? ' — قريب من حد ديسكورد (256KB)' : ' — تحت حد ديسكورد (256KB)') });
+  out.push({ k: 'bg', t: 'الخلفية', lv: m.solidBg ? 'warn' : 'ok',
+    d: m.hasAlpha ? 'شفافة، ممتاز' : m.solidBg ? 'لون صلب مش شفاف، هتبان مربع حوالين الموضوع' : 'الصورة ملاية الإطار كله' });
+  const fr = [];
+  if (!m.full) {
+    if (m.fill < 0.5) fr.push('الموضوع صغير جوه الإطار (' + ckPct(m.fill) + '%)');
+    if (m.fill > 0.97 && m.edge >= 2) fr.push('الموضوع ملزق في الحواف وممكن يكون مقصوص');
+    if (m.off > 0.08) fr.push('الموضوع مش في النص');
+  }
+  out.push({ k: 'frame', t: 'الموضوع والإطار', lv: fr.length ? 'warn' : 'ok',
+    d: fr.length ? fr.join(' · ') : m.full ? 'الصورة ملاية الإطار كله' : 'الموضوع ' + ckPct(m.fill) + '% من الإطار ومتوسّط' });
+  out.push({ k: 'sharp', t: 'الحدة', lv: m.p98 < 10 ? 'bad' : m.p98 < 16 ? 'warn' : 'ok',
+    d: m.p98 < 16 ? 'الصورة مش حادة والتفاصيل ناعمة' : 'حواف واضحة' });
+  const cr = [];
+  if (m.hasAlpha && !m.full) {
+    if (Math.abs(m.meanL - 54) < 30) cr.push('الموضوع غامق وهيضيع على الخلفية الداكنة');
+    if (m.meanL > 213) cr.push('الموضوع فاتح وهيضيع على الخلفية الفاتحة');
+  }
+  if (m.clip > 0.35) cr.push('ألوان محروقة (سواد أو بياض كتير)');
+  out.push({ k: 'color', t: 'الألوان', lv: cr.length ? 'warn' : 'ok', d: cr.length ? cr.join(' · ') : 'التباين والألوان كويسين' });
+  const l20 = m.leg[20];
+  out.push({ k: 'small', t: 'الوضوح بأحجام ديسكورد', lv: l20 < 0.35 ? 'bad' : l20 < 0.5 ? 'warn' : 'ok',
+    d: `20px: ${ckPct(l20)}% · 32px: ${ckPct(m.leg[32])}% · 64px: ${ckPct(m.leg[64])}%` });
+  return out;
+}
+
+function ckRow(c) {
+  const li = document.createElement('li'); li.className = c.lv;
+  li.innerHTML = '<span class="ci">' + ckSvg(c.k) + '<i class="st">' + CK_ICON[c.lv] + '</i></span><div><b></b><small class="dd"></small></div>';
+  li.querySelector('b').textContent = c.t; li.querySelector('.dd').textContent = c.d;
+  return li;
+}
+function ckDrawSizes(boxId, src) {
+  document.querySelectorAll('#' + boxId + ' canvas').forEach(c => drawRoleIcon(c, src, c.width > 40 ? 64 : c.width > 24 ? 32 : 20));
+}
+const ckWait = ms => new Promise(r => setTimeout(r, ms));
+
+wireDrop(document.getElementById('ckDrop'), document.getElementById('ckInput'), async file => {
+  let r; try { r = await readImage(file); } catch (e) { return; }
+  const my = ++ckRun, img = r.img;
+  ckList.innerHTML = ''; ckVerdict.style.display = 'none'; ckDownload.disabled = true;
+  document.getElementById('ckCmp').style.display = 'none'; showBgRm('ckBgSlot', false);
+  document.getElementById('ckDims').textContent = '';
+  const w = img.naturalWidth, h = img.naturalHeight, kv = Math.min(1, 600 / Math.max(w, h));
+  ckCanvas.width = Math.round(w * kv); ckCanvas.height = Math.round(h * kv);
+  const cx = ckCanvas.getContext('2d'); cx.imageSmoothingQuality = 'high'; cx.drawImage(img, 0, 0, ckCanvas.width, ckCanvas.height);
+  ckOver.width = ckCanvas.width; ckOver.height = ckCanvas.height;
+  document.getElementById('ckWrap').style.display = 'flex';
+  const p1 = ckBusy.play([{ t: `بقرا الأيقونة… ${w}×${h}`, ms: 900 }, { t: 'بقيس المقاس والخلفية والإطار…', ms: 1300 }, { t: 'بفحص الوضوح بأحجام 20 و32 و64…', ms: 1300 }]);
+  const before = ckMetrics(img), bChecks = ckChecks(before, file.size);
+  await p1; if (my !== ckRun) return;
+  const ox = ckOver.getContext('2d');
+  if (!before.full) {                                          // مربع بيبيّن مكان الموضوع اللي الأداة لقته
+    ox.strokeStyle = '#5865f2'; ox.lineWidth = 3; ox.setLineDash([8, 6]);
+    ox.strokeRect(before.box.x * ckOver.width, before.box.y * ckOver.height, before.box.w * ckOver.width, before.box.h * ckOver.height);
+  }
+  const rows = [];
+  for (const c of bChecks) { const li = ckRow(c); ckList.appendChild(li); rows.push(li); await ckWait(320); if (my !== ckRun) return; }
+  showBgRm('ckBgSlot', before.solidBg);
+  const bad = bChecks.filter(c => c.lv !== 'ok' && c.k !== 'file' && c.k !== 'bg');
+  let finalCanvas = null, useFixed = false, summary = '', aChecks = null, after = null;
+  ckDrawSizes('ckBefore', before.sq);
+  if (!bad.length) {
+    summary = 'ok';
+    ckDrawSizes('ckAfter', before.sq);
+  } else {
+    const warnLine = document.createElement('li'); warnLine.className = 'run';
+    warnLine.innerHTML = '<span class="ci"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg></span><div><b>لقيت ' + bad.length + ' ' + (bad.length > 2 ? 'مشاكل' : 'مشكلة') + '، وبظبطها دلوقتي…</b><small>بحدد الموضوع، وأظبط الإطار والتباين والحدة بحسب أحجام ديسكورد</small></div>';
+    ckList.appendChild(warnLine);
+    await loadAI();
+    const p2 = ckBusy.play([{ t: 'بحدد الموضوع وأظبط الإطار…', ms: 3000 }, { t: 'بظبط التباين والحدة لكل حجم…', ms: 3500 }, { t: 'بتأكد من النتيجة…', ms: 2500 }]);
+    finalCanvas = await smartRole(img);
+    const ai = roleInfo && roleInfo.ai;
+    await p2; if (my !== ckRun) return;
+    const blob = await new Promise(res => finalCanvas.toBlob(res, 'image/png'));
+    after = ckMetrics(finalCanvas); aChecks = ckChecks(after, blob.size);
+    const aBad = aChecks.filter(c => c.lv !== 'ok' && c.k !== 'bg');
+    useFixed = aBad.length < bad.length || (aBad.length === bad.length && after.leg[20] >= before.leg[20] - 0.02);
+    warnLine.remove();
+    let fixed = 0;
+    bad.forEach(c => {
+      const a = aChecks.find(x => x.k === c.k), li = rows[bChecks.indexOf(c)], okNow = useFixed && a.lv === 'ok';
+      if (okNow) fixed++;
+      const s = document.createElement('small'); s.className = 'aft' + (okNow ? '' : ' warn');
+      s.textContent = (okNow ? 'اتظبط ✓ ' : 'لسه محتاج انتباه — ') + a.d;
+      li.querySelector('div').appendChild(s);
+      if (okNow) { li.className = 'ok'; li.querySelector('.st').innerHTML = CK_ICON.ok; }
+    });
+    summary = useFixed ? (fixed === bad.length ? 'fixed' : 'part') : 'orig';
+    summary += '|' + fixed + '|' + bad.length + '|' + (ai ? 1 : 0);
+    ckDrawSizes('ckAfter', useFixed ? finalCanvas : before.sq);
+    if (useFixed) { ckFinal = { url: URL.createObjectURL(blob), name: 'أيقونة-متظبطة.png' }; }
+  }
+  document.getElementById('ckCmp').style.display = 'block';
+  const [st, fx, tot, ai] = summary.split('|');
+  let html, cls = '';
+  if (st === 'ok') html = '<b>الأيقونة تمام ✓</b>كل النقاط سليمة ومفيش حاجة محتاجة تتغيّر. هتبان واضحة في ديسكورد بكل الأحجام.';
+  else if (st === 'fixed') html = '<b>لقيت ' + tot + ' ' + (+tot > 2 ? 'مشاكل' : 'مشكلة') + ' وظبطتها كلها ✓</b>النسخة الجديدة 256×256 وواضحة بأحجام ديسكورد' + (ai === '1' ? ' (حددت الموضوع بالذكاء الاصطناعي).' : '.');
+  else if (st === 'part') { html = '<b>ظبطت ' + fx + ' من ' + tot + '</b>الباقي محتاج صورة أصلية أوضح أو بخلفية أبسط.'; cls = 'warn'; }
+  else { html = '<b>الأصلية أحسن من أي نسخة جربتها</b>جربت أظبطها بس النتيجة مكانتش أحسن، فسيبتها زي ما هي. جرّب صورة أوضح.'; cls = 'warn'; }
+  ckVerdict.className = 'ckverdict ' + cls; ckVerdict.innerHTML = '<span class="vi">' + (cls ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>' : '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></svg>') + '</span><div>' + html + '</div>'; ckVerdict.style.display = 'block';
+  if (!(st === 'fixed' || st === 'part')) ckFinal = { url: URL.createObjectURL(file), name: file.name || 'أيقونة.png' };
+  ckDownload.textContent = (st === 'fixed' || st === 'part') ? 'تنزيل الأيقونة المتظبطة' : 'تنزيل الأيقونة';
+  ckDownload.disabled = false;
+  document.getElementById('ckDims').textContent = 'الأصلية: \u2066' + w + '×' + h + '\u2069 — \u2066' + fmtSize(file.size) + '\u2069';
+});
+ckDownload.addEventListener('click', () => { if (ckFinal) dl(ckFinal.url, ckFinal.name); });
+
 // ===== التنقل بين الشاشات =====
 const VIEWS = {
   trim: ['workspace', 'تقريب الحواف'], role: ['workspace', 'أيقونة رول ديسكورد'],
   banner: ['banner', 'صورة مربعة لبانر'], resize: ['resize', 'تغيير المقاس'],
   compress: ['compress', 'تصغير الحجم وتغيير الصيغة'], enhance: ['enhance', 'تحسين جودة الصورة'],
-  adjust: ['adjust', 'ضبط الألوان'], blur: ['blur', 'طمس أجزاء من الصورة']
+  adjust: ['adjust', 'ضبط الألوان'], blur: ['blur', 'طمس أجزاء من الصورة'], check: ['check', 'فاحص الأيقونة']
 };
 const backSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 document.querySelectorAll('.view').forEach(sec => {
@@ -1661,6 +1875,7 @@ function applyRoute() {
       document.querySelector('#workspace .sec-head h2').textContent = title;
     }
     document.querySelector('#' + id + ' .trail b').textContent = title;
+    if (key === 'check') loadAI();
     body.dataset.view = key;
     document.querySelectorAll('.intro').forEach(x => x.remove());
     const srcThumb = !reduceMotion && document.querySelector(`.card [data-mode="${key}"]`)?.closest('.card')?.querySelector('.thumb');
@@ -1711,6 +1926,8 @@ document.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('cl
 
 
 drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+resetBtn.addEventListener('click', () => showBgRm('bgRmSlot', false));
+roleOpt.addEventListener('change', () => showBgRm('bgRmSlot', false));
 route(true);
 
 
