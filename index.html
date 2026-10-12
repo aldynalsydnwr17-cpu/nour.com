@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=29">
 </head>
 <body id="top">
 
@@ -232,6 +232,7 @@
         </div>
         <p class="hint">اسحب الشريط عشان تقارن قبل وبعد</p>
       </div>
+      <div class="bgrm-slot" id="bgRmSlot"></div>
       <div class="tips" id="roleTips" style="display:none">
         <h4><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>نصائح عشان الأيقونة تبان أحسن في ديسكورد</h4>
         <ol id="roleTipsList"></ol>
@@ -302,7 +303,6 @@
           <div><canvas data-rp="20" width="20" height="20"></canvas><b>20px</b><small>الصغير</small></div>
         </div>
       </div>
-      <div class="bgrm-slot" id="bgRmSlot"></div>
       <div class="dims" id="dims"></div>
 
       <div class="actions">
@@ -553,9 +553,9 @@
         <input type="file" id="ckInput" accept="image/*">
       </div>
       <div class="ed" id="ckWrap"><div class="holder"><canvas class="main" id="ckCanvas"></canvas><canvas class="over" id="ckOver"></canvas><div class="busy" id="ckBusy"></div></div></div>
+      <div class="bgrm-slot" id="ckBgSlot"></div>
       <ul class="cklist" id="ckList"></ul>
       <div class="ckverdict" id="ckVerdict" style="display:none"></div>
-      <div class="bgrm-slot" id="ckBgSlot"></div>
       <div id="ckCmp" style="display:none">
         <p class="lbl">قبل</p><div class="dc-sizes" id="ckBefore"><div><canvas width="64" height="64"></canvas><b>64px</b></div><div><canvas width="32" height="32"></canvas><b>32px</b></div><div><canvas width="20" height="20"></canvas><b>20px</b></div></div>
         <p class="lbl">بعد</p><div class="dc-sizes" id="ckAfter"><div><canvas width="64" height="64"></canvas><b>64px</b></div><div><canvas width="32" height="32"></canvas><b>32px</b></div><div><canvas width="20" height="20"></canvas><b>20px</b></div></div>
@@ -707,7 +707,7 @@
   </section>
 </main>
 
-<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v27 · 9 tools</small></footer>
+<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v29 · 9 tools</small></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <nav class="dock" aria-label="تنقل سريع">
@@ -717,6 +717,6 @@
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script src="app.js?v=27" defer></script>
+<script src="app.js?v=29" defer></script>
 </body>
 </html>
