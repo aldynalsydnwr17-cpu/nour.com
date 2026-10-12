@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=27">
 </head>
 <body id="top">
 
@@ -54,6 +54,7 @@
   <a href="#/enhance">تحسين الجودة</a>
   <a href="#/adjust">ضبط الألوان</a>
   <a href="#/blur">طمس أجزاء</a>
+  <a href="#/check">فاحص الأيقونة</a>
   <a href="#guides">شروحات</a>
   <a href="#updates">التحديثات</a>
   <button type="button" data-act="install">ثبّت التطبيق</button>
@@ -181,6 +182,17 @@
       <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>طمس وبكسلة وتغطية سوداء</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تحدد أكتر من منطقة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>تراجع ومسح بضغطة</li></ul>
       <button class="btn" type="button" data-mode="blur">اطمس جزء</button>
     </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="92" y="22" width="88" height="88" rx="18" fill="currentColor" opacity=".16" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/><path d="M136 44c2.6 15 9.6 22 24 24.6-14.4 2.6-21.4 9.6-24 24.6-2.6-15-9.6-22-24-24.6 14.4-2.6 21.4-9.6 24-24.6z" fill="currentColor"/><circle cx="188" cy="80" r="30" fill="var(--bg,#111)" fill-opacity=".55" stroke="currentColor" stroke-width="4"/><path d="m210 102 22 22" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="m176 80 8 9 15-17" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="m8.5 11 2 2 3.5-4"/></svg></div>
+        <div><h3>فاحص الأيقونة</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">ارفع أيقونة رول جاهزة وهو يفحصها: المقاس والخلفية والإطار والحدة والوضوح بأحجام ديسكورد. يظبط المشاكل ويقولك النتيجة.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>فحص 7 نقاط واحدة واحدة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بيظبط أي مشكلة لوحده</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>مقارنة قبل وبعد بحجم 20 و32 و64</li></ul>
+      <button class="btn" type="button" data-mode="check">افحص أيقونتك</button>
+    </article>
   </div>
 
   <section id="workspace" class="view">
@@ -290,6 +302,7 @@
           <div><canvas data-rp="20" width="20" height="20"></canvas><b>20px</b><small>الصغير</small></div>
         </div>
       </div>
+      <div class="bgrm-slot" id="bgRmSlot"></div>
       <div class="dims" id="dims"></div>
 
       <div class="actions">
@@ -529,6 +542,31 @@
     </div>
   </section>
 
+
+  <section id="check" class="view">
+    <div class="sec-head"><h2>فاحص الأيقونة</h2><p>ارفع أيقونة الرول بعد ما تخلصها، وهو يفحصها ويظبط أي مشكلة فيها.</p></div>
+    <div class="panel">
+      <div id="ckDrop" role="button" tabindex="0">
+        <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+        <p>اضغط هنا أو اسحب الأيقونة</p>
+        <span>PNG أو JPG أو WebP</span>
+        <input type="file" id="ckInput" accept="image/*">
+      </div>
+      <div class="ed" id="ckWrap"><div class="holder"><canvas class="main" id="ckCanvas"></canvas><canvas class="over" id="ckOver"></canvas><div class="busy" id="ckBusy"></div></div></div>
+      <ul class="cklist" id="ckList"></ul>
+      <div class="ckverdict" id="ckVerdict" style="display:none"></div>
+      <div class="bgrm-slot" id="ckBgSlot"></div>
+      <div id="ckCmp" style="display:none">
+        <p class="lbl">قبل</p><div class="dc-sizes" id="ckBefore"><div><canvas width="64" height="64"></canvas><b>64px</b></div><div><canvas width="32" height="32"></canvas><b>32px</b></div><div><canvas width="20" height="20"></canvas><b>20px</b></div></div>
+        <p class="lbl">بعد</p><div class="dc-sizes" id="ckAfter"><div><canvas width="64" height="64"></canvas><b>64px</b></div><div><canvas width="32" height="32"></canvas><b>32px</b></div><div><canvas width="20" height="20"></canvas><b>20px</b></div></div>
+      </div>
+      <div class="dims" id="ckDims"></div>
+      <div class="actions">
+        <button class="btn" id="ckDownload" type="button" disabled>تنزيل الأيقونة</button>
+      </div>
+    </div>
+  </section>
+
   <section id="guides" class="home">
     <div class="sec-head"><h2>شروحات سريعة</h2><p>طريقة استخدام كل أداة في 3 خطوات.</p></div>
     <div class="guides">
@@ -669,7 +707,7 @@
   </section>
 </main>
 
-<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v25 · 8 tools</small></footer>
+<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v27 · 9 tools</small></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <nav class="dock" aria-label="تنقل سريع">
@@ -679,6 +717,6 @@
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script src="app.js?v=25" defer></script>
+<script src="app.js?v=27" defer></script>
 </body>
 </html>
