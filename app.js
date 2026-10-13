@@ -188,6 +188,54 @@ function loadAI() {
   })();
   return aiLoading;
 }
+
+// تحسين قناع الذكاء الاصطناعي: بيلزّق حوافه على حواف الصورة الحقيقية (Guided Filter) ويشيل البقع الصغيرة الشاردة
+function refineMask(S, w, h, L) {
+  const n = w * h, R = 3, eps = 0.012;
+  const I = new Float32Array(n); for (let i = 0; i < n; i++) I[i] = L[i] / 255;
+  const box = a => {                                               // متوسط صندوقي بنصف قطر R
+    const t = new Float32Array(n), o = new Float32Array(n);
+    for (let y = 0; y < h; y++) { let acc = 0, cnt = 0; const row = y * w;
+      for (let x = -R; x < w; x++) {
+        const add = x + R, rem = x - R - 1;
+        if (add < w) { acc += a[row + add]; cnt++; }
+        if (rem >= 0) { acc -= a[row + rem]; cnt--; }
+        if (x >= 0) t[row + x] = acc / cnt;
+      } }
+    for (let x = 0; x < w; x++) { let acc = 0, cnt = 0;
+      for (let y = -R; y < h; y++) {
+        const add = y + R, rem = y - R - 1;
+        if (add < h) { acc += t[add * w + x]; cnt++; }
+        if (rem >= 0) { acc -= t[rem * w + x]; cnt--; }
+        if (y >= 0) o[y * w + x] = acc / cnt;
+      } }
+    return o;
+  };
+  const II = new Float32Array(n), Ip = new Float32Array(n);
+  for (let i = 0; i < n; i++) { II[i] = I[i] * I[i]; Ip[i] = I[i] * S[i]; }
+  const mI = box(I), mp = box(S), mII = box(II), mIp = box(Ip);
+  const a = new Float32Array(n), b = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const v = mII[i] - mI[i] * mI[i], c = mIp[i] - mI[i] * mp[i]; a[i] = c / (v + eps); b[i] = mp[i] - a[i] * mI[i]; }
+  const ma = box(a), mb = box(b), q = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const v = ma[i] * I[i] + mb[i]; q[i] = Math.min(1, Math.max(0, (v - 0.2) / 0.6)); }   // نشدّ التباين عشان الحافة تبقى حادة
+  // نشيل أي بقعة مساحتها أقل من 6% من أكبر بقعة
+  const lab = new Int32Array(n), areas = [0]; let id = 0; const st = [];
+  for (let i = 0; i < n; i++) {
+    if (q[i] < 0.5 || lab[i]) continue;
+    id++; areas[id] = 0; st.push(i); lab[i] = id;
+    while (st.length) {
+      const p = st.pop(); areas[id]++;
+      const x = p % w, y = (p / w) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const j = yy * w + xx; if (!lab[j] && q[j] >= 0.5) { lab[j] = id; st.push(j); }
+      }
+    }
+  }
+  const big = Math.max(0, ...areas), keep = areas.map(a => a >= big * 0.06);
+  for (let i = 0; i < n; i++) if (q[i] >= 0.5 && !keep[lab[i]]) q[i] = 0;
+  return q;
+}
 // بيرجّع قناع الموضوع 320×320 (قيم من 0 لـ 1) أو null
 async function aiMask(img) {
   const session = await Promise.race([loadAI(), new Promise(r => setTimeout(() => r(null), 25000))]);
@@ -202,14 +250,21 @@ async function aiMask(img) {
     let mx = 1;
     for (let i = 0; i < px.length; i += 4) mx = Math.max(mx, px[i], px[i + 1], px[i + 2]);
     const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
-    const inp = new Float32Array(3 * S * S);
-    for (let i = 0; i < S * S; i++) for (let k = 0; k < 3; k++) inp[k * S * S + i] = (px[i * 4 + k] / mx - mean[k]) / std[k];
-    const res = await session.run({ 'input.1': new ort.Tensor('float32', inp, [1, 3, S, S]) });
-    const o = res[Object.keys(res)[0]].data;
-    let lo = Infinity, hi = -Infinity;
-    for (let i = 0; i < S * S; i++) { if (o[i] < lo) lo = o[i]; if (o[i] > hi) hi = o[i]; }
-    const m = new Float32Array(S * S);
-    for (let i = 0; i < S * S; i++) m[i] = (o[i] - lo) / (hi - lo + 1e-8);
+    const run = async flip => {
+      const inp = new Float32Array(3 * S * S);
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const i = y * S + (flip ? S - 1 - x : x), j = y * S + x;
+        for (let k = 0; k < 3; k++) inp[k * S * S + j] = (px[i * 4 + k] / mx - mean[k]) / std[k];
+      }
+      const res = await session.run({ 'input.1': new ort.Tensor('float32', inp, [1, 3, S, S]) });
+      const o = res[Object.keys(res)[0]].data, out = new Float32Array(S * S);
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < S * S; i++) { if (o[i] < lo) lo = o[i]; if (o[i] > hi) hi = o[i]; }
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) out[y * S + (flip ? S - 1 - x : x)] = (o[y * S + x] - lo) / (hi - lo + 1e-8);
+      return out;
+    };
+    const m = await run(false);
+    try { const f = await run(true); for (let i = 0; i < S * S; i++) m[i] = (m[i] + f[i]) / 2; } catch (e) { /* نكمل بالنسخة الأولى */ }
     return m;
   } catch (e) { return null; }
 }
@@ -238,12 +293,23 @@ async function smartRole(img) {
   let mk = null, aiUsed = false;
   if (!alphaMode) mk = await aiMask(img);
   if (mk) {                                                  // الذكاء الاصطناعي: قناع الموضوع هو خريطة الأهمية
+    const bil = (fx, fy) => {                                // عينة سلسة (مش أقرب بكسل) من القناع 320×320
+      fx = Math.min(319, Math.max(0, fx)); fy = Math.min(319, Math.max(0, fy));
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(319, x0 + 1), y1 = Math.min(319, y0 + 1), tx = fx - x0, ty = fy - y0;
+      return (mk[y0 * 320 + x0] * (1 - tx) + mk[y0 * 320 + x1] * tx) * (1 - ty) + (mk[y1 * 320 + x0] * (1 - tx) + mk[y1 * 320 + x1] * tx) * ty;
+    };
     for (let y = 0; y < hc; y++) for (let x = 0; x < wc; x++) {
-      const v = mk[Math.min(319, Math.floor(y / hc * 320)) * 320 + Math.min(319, Math.floor(x / wc * 320))];
+      const v = bil((x + 0.5) / wc * 320 - 0.5, (y + 0.5) / hc * 320 - 0.5);
       S[y * wc + x] = Math.max(0, v - 0.1) / 0.9;
     }
     let tot = 0; for (let i = 0; i < n; i++) tot += S[i];
-    if (tot < n * 0.01 || tot > n * 0.97) mk = null; else aiUsed = true;   // قناع فاضي أو كله موضوع: نرجع للتحليل الحسابي
+    if (tot < n * 0.01 || tot > n * 0.97) mk = null; else {
+      aiUsed = true;
+      try {                                                    // تحسين الحواف: لو النتيجة منطقية نستخدمها، وإلا نرجع للقناع الأصلي
+        const Sr = refineMask(S, wc, hc, L); let t2 = 0; for (let i = 0; i < n; i++) t2 += Sr[i];
+        if (t2 > n * 0.01 && t2 < n * 0.97 && t2 > tot * 0.5) { if (window.__roleDbg) window.__roleDbg = { raw: S.slice(), ref: Sr.slice(), wc, hc }; S = Sr; }
+      } catch (e) { /* القناع الأصلي كفاية */ }
+    }
   }
   if (mk) {
     /* S جاهزة من النموذج */
@@ -1846,12 +1912,198 @@ wireDrop(document.getElementById('ckDrop'), document.getElementById('ckInput'), 
 });
 ckDownload.addEventListener('click', () => { if (ckFinal) dl(ckFinal.url, ckFinal.name); });
 
+
+// ===== استوديو البروفايل =====
+const pfBusy = busyKit(document.getElementById('pfBusy'));
+const pf = { ban: null, av: null, banOut: null, avOut: null, opts: [], sel: 0 };
+const pfEl = id => document.getElementById(id);
+const hex2 = v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0');
+const rgbHex = c => '#' + hex2(c[0]) + hex2(c[1]) + hex2(c[2]);
+let pfFmtMode = 'nohash';
+const pfCode = c => pfFmtMode === 'rgb' ? Math.round(c[0]) + ', ' + Math.round(c[1]) + ', ' + Math.round(c[2]) : pfFmtMode === 'hash' ? rgbHex(c).toUpperCase() : rgbHex(c).slice(1).toUpperCase();
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h /= 6;
+  }
+  return [h, s, l];
+}
+function hsl2rgb(h, s, l) {
+  h = ((h % 1) + 1) % 1;
+  const a = s * Math.min(l, 1 - l), f = n => { const k = (n + h * 12) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return [f(0) * 255, f(8) * 255, f(4) * 255];
+}
+const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const contrastWhite = c => 1.05 / (lumOf(c) + 0.05);
+// نخلي اللون مناسب لخلفية بروفايل عليها كلام أبيض: تشبّع كفاية ودرجة إضاءة مش عالية
+function pfFit(h, s, l, minC = 4) {
+  s = Math.max(0.45, Math.min(0.9, s)); l = Math.max(0.22, Math.min(0.5, l));
+  let c = hsl2rgb(h, s, l), guard = 0;
+  while (contrastWhite(c) < minC && l > 0.14 && guard++ < 30) { l -= 0.02; c = hsl2rgb(h, s, l); }
+  return c;
+}
+// الذكاء: يحلل ألوان البانر والصورة ويطلع الألوان الأبرز، وبعدين يقترح 4 تركيبات
+function pfAnalyze() {
+  const bins = new Float32Array(24), sums = Array.from({ length: 24 }, () => [0, 0, 0, 0]);
+  let neutral = 0, nl = 0, nc = 0;
+  const feed = (src, wt) => {
+    if (!src) return;
+    const w = 56, h = Math.max(8, Math.round(56 * src.height / src.width));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data;
+    for (let i = 0; i < w * h; i++) {
+      if (d[i * 4 + 3] < 128) continue;
+      const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], [hh, s, l] = rgb2hsl(r, g, b);
+      nl += l; nc++;
+      if (s < 0.18 || l < 0.1 || l > 0.92) { neutral += wt; continue; }
+      const k = Math.min(23, Math.floor(hh * 24)), wgt = wt * s * (1 - Math.abs(l - 0.5) * 1.2);
+      bins[k] += wgt; const q = sums[k]; q[0] += r * wgt; q[1] += g * wgt; q[2] += b * wgt; q[3] += wgt;
+    }
+  };
+  feed(pf.banOut, 0.6); feed(pf.avOut, 0.4);
+  const score = k => bins[k] + 0.5 * (bins[(k + 23) % 24] + bins[(k + 1) % 24]);
+  let best = -1, bs = 0; for (let k = 0; k < 24; k++) { const v = score(k); if (v > bs) { bs = v; best = k; } }
+  const total = bins.reduce((a, b) => a + b, 0);
+  const avgL = nc ? nl / nc : 0.4;
+  const avg = k => { let r = 0, g = 0, b = 0, w = 0; for (const j of [(k + 23) % 24, k, (k + 1) % 24]) { const q = sums[j]; r += q[0]; g += q[1]; b += q[2]; w += q[3]; } return w ? [r / w, g / w, b / w] : null; };
+  if (best < 0 || total < 0.5) {                                   // صور رمادية: درجات هادية
+    const base = pfFit(0.62, 0.35, Math.max(0.2, Math.min(0.36, avgL)), 5);
+    const alt = pfFit(0.62, 0.3, 0.14, 5);
+    return { vivid: false, opts: [
+      { n: 'الأنسب', d: 'درجات هادية من صورتك', c: [base, alt], best: true },
+      { n: 'ديسكورد', d: 'اللون الأزرق المعروف', c: [pfFit(0.646, 0.85, 0.45), pfFit(0.66, 0.6, 0.2)] },
+      { n: 'غامق', d: 'أسود ناعم', c: [pfFit(0.6, 0.15, 0.2, 5), pfFit(0.6, 0.12, 0.1, 5)] },
+      { n: 'بنفسجي', d: 'لون هادي', c: [pfFit(0.74, 0.55, 0.4), pfFit(0.8, 0.5, 0.2)] }] };
+  }
+  const P = avg(best), [h1, s1, l1] = rgb2hsl(P[0], P[1], P[2]);
+  let second = -1, ss = 0;                                          // لون تاني بعيد عن الأول (45° على الأقل)
+  for (let k = 0; k < 24; k++) { const dist = Math.min((k - best + 24) % 24, (best - k + 24) % 24); if (dist >= 3 && score(k) > ss) { ss = score(k); second = k; } }
+  const A = second >= 0 && ss > bs * 0.25 ? avg(second) : null;
+  const hA = A ? rgb2hsl(A[0], A[1], A[2])[0] : h1 + 0.08;
+  const main = pfFit(h1, s1, l1 > 0.5 ? 0.42 : Math.max(0.3, l1));
+  return { vivid: true, opts: [
+    { n: 'الأنسب', d: A ? 'أبرز لونين في صورك' : 'اللون الأبرز في صورك', c: [main, pfFit(hA, A ? rgb2hsl(A[0], A[1], A[2])[1] : s1, 0.3)], best: true },
+    { n: 'متناسق', d: 'درجات قريبة من بعض', c: [main, pfFit(h1 + 0.06, s1, 0.28)] },
+    { n: 'متباين', d: 'لون مكمّل للأساسي', c: [main, pfFit(h1 + 0.5, s1, 0.3)] },
+    { n: 'هادي', d: 'داكن وراقي', c: [pfFit(h1, Math.min(0.5, s1), 0.24, 5), pfFit(h1, Math.min(0.4, s1), 0.13, 5)] }] };
+}
+function pfApply(i) {
+  pf.sel = i;
+  const o = pf.opts[i], st = pfEl('pfStage');
+  st.style.setProperty('--pf1', rgbHex(o.c[0])); st.style.setProperty('--pf2', rgbHex(o.c[1]));
+  document.querySelectorAll('#pfOpts .pf-o').forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+  [['pfHex1', o.c[0]], ['pfHex2', o.c[1]]].forEach(([id, c]) => {
+    const b = pfEl(id); b.querySelector('code').textContent = pfCode(c); b.querySelector('i').style.background = rgbHex(c); b.style.color = rgbHex(c);
+    b.querySelector('code').style.color = 'var(--text,inherit)';
+  });
+}
+chipsOf('pfFmt', c => { pfFmtMode = c.dataset.f; if (pf.opts.length) pfApply(pf.sel); });
+function pfBuildOpts(res) {
+  pf.opts = res.opts;
+  const box = pfEl('pfOpts'); box.innerHTML = '';
+  res.opts.forEach((o, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pf-o'; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = (o.best ? '<em>الأنسب</em>' : '') + '<span class="bar" style="background:linear-gradient(90deg,' + rgbHex(o.c[0]) + ',' + rgbHex(o.c[1]) + ')"></span><b></b><small></small>';
+    b.querySelector('b').textContent = o.n; b.querySelector('small').textContent = o.d;
+    b.addEventListener('click', () => pfApply(i)); box.appendChild(b);
+  });
+  pfApply(0);
+}
+// قص وتصغير على مراحل (عشان الجودة تفضل حلوة)
+function pfCrop(img, sx, sy, sw, sh, ow, oh) {
+  let c = document.createElement('canvas'); c.width = Math.max(1, Math.round(sw)); c.height = Math.max(1, Math.round(sh));
+  let x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  while (c.width / 2 >= ow && c.height / 2 >= oh) {
+    const n = document.createElement('canvas'); n.width = Math.round(c.width / 2); n.height = Math.round(c.height / 2);
+    const nx = n.getContext('2d'); nx.imageSmoothingQuality = 'high'; nx.drawImage(c, 0, 0, n.width, n.height); c = n;
+  }
+  if (c.width !== ow || c.height !== oh) {
+    const n = document.createElement('canvas'); n.width = ow; n.height = oh;
+    const nx = n.getContext('2d'); nx.imageSmoothingQuality = 'high'; nx.drawImage(c, 0, 0, ow, oh); c = n;
+  }
+  return c;
+}
+function pfShow(cv, src, cssW) {                                        // رسم بدقة الشاشة للمعاينة
+  const dpr = Math.min(3, window.devicePixelRatio || 1), w = Math.round(cssW * dpr), h = Math.round(w * src.height / src.width);
+  let cur = src;
+  while (cur.width / 2 > w) { const n = document.createElement('canvas'); n.width = Math.round(cur.width / 2); n.height = Math.round(cur.height / 2); const nx = n.getContext('2d'); nx.imageSmoothingQuality = 'high'; nx.drawImage(cur, 0, 0, n.width, n.height); cur = n; }
+  cv.width = w; cv.height = h; const x = cv.getContext('2d'); x.imageSmoothingQuality = 'high'; x.clearRect(0, 0, w, h); x.drawImage(cur, 0, 0, w, h);
+}
+function pfRender() {
+  const banBox = pfEl('pfBan'), avBox = document.querySelector('#pfStage .pf-av');
+  if (pf.ban) {
+    const img = pf.ban, sw = img.naturalWidth, sh = img.naturalHeight, z = +pfEl('pfBz').value / 100;
+    const cw = Math.min(sw, sh * 2.5) / z, ch = cw / 2.5;
+    const sx = (sw - cw) * (+pfEl('pfBx').value / 100), sy = (sh - ch) * (+pfEl('pfBy').value / 100);
+    const ow = Math.max(100, Math.min(1200, Math.floor(cw))), oh = Math.round(ow * 0.4);
+    pf.banOut = pfCrop(img, sx, sy, cw, ch, ow, oh);
+    pfShow(pfEl('pfBanCv'), pf.banOut, pfEl('pfBan').clientWidth || 360); banBox.classList.add('has');
+  } else { pf.banOut = null; banBox.classList.remove('has'); }
+  if (pf.av) {
+    const img = pf.av, sw = img.naturalWidth, sh = img.naturalHeight, m = Math.min(sw, sh) / (+pfEl('pfAz').value / 100);
+    const out = Math.max(64, Math.min(512, Math.floor(m)));
+    pf.avOut = pfCrop(img, (sw - m) / 2, (sh - m) / 2, m, m, out, out);
+    drawRoleIcon(pfEl('pfAvCv'), pf.avOut, 92); avBox.classList.add('has');
+  } else { pf.avOut = null; avBox.classList.remove('has'); }
+  pfEl('pfDlBan').disabled = !pf.banOut; pfEl('pfDlAv').disabled = !pf.avOut;
+  pfEl('pfDims').textContent = [pf.banOut ? 'البانر: ' + '⁦' + pf.banOut.width + '×' + pf.banOut.height + '⁩' : '', pf.avOut ? 'الصورة: ' + '⁦' + pf.avOut.width + '×' + pf.avOut.height + '⁩' : ''].filter(Boolean).join('  —  ');
+}
+function pfTips() {
+  const L = [];
+  if (pf.ban) {
+    const w = pf.ban.naturalWidth, h = pf.ban.naturalHeight;
+    if (w < 600 || h < 240) L.push('البانر صغير (' + w + '×' + h + '). ديسكورد بيطلب 600×240 على الأقل، فهيبان مش حاد.');
+    if (Math.abs(w / h - 2.5) > 0.15) L.push('نسبة البانر في ديسكورد 5:2، فقصيت الصورة. حرّك الشرائط لو عايز جزء تاني يظهر.');
+  }
+  if (pf.av) {
+    const w = pf.av.naturalWidth, h = pf.av.naturalHeight;
+    if (Math.min(w, h) < 128) L.push('صورة البروفايل صغيرة (' + w + '×' + h + '). الأفضل 128×128 أو أكبر.');
+    if (Math.abs(w - h) / Math.max(w, h) > 0.05) L.push('صورة البروفايل مش مربعة، فاتقصت من النص. استخدم "تقريب صورة البروفايل" لو الوش محتاج ضبط.');
+  }
+  if (pf.ban && pf.av) L.push('الصورة بتتغطى جزء صغير من البانر من تحت، فمتحطش كلام مهم في الزاوية السفلية.');
+  const box = pfEl('pfTips'); box.style.display = L.length ? 'block' : 'none';
+  const ol = pfEl('pfTipsList'); ol.innerHTML = ''; L.forEach(t => { const li = document.createElement('li'); li.textContent = t; ol.appendChild(li); });
+}
+async function pfLoaded(kind, file) {
+  let r; try { r = await readImage(file); } catch (e) { return; }
+  pf[kind] = r.img;
+  const drop = pfEl(kind === 'ban' ? 'pfBanDrop' : 'pfAvDrop');
+  drop.classList.add('done'); drop.querySelector('small').textContent = file.name || 'تم الرفع';
+  pfEl('pfStage').style.display = 'block'; pfEl('pfCtl').style.display = 'block';
+  pfRender(); pfTips();
+  const p = pfBusy.play([{ t: 'بقرا الصور…', ms: 800 }, { t: 'الذكاء بيحلل الألوان الأبرز…', ms: 1400 }, { t: 'بختار ألوان البروفايل الأنسب…', ms: 1100 }]);
+  const res = pfAnalyze(); await p;
+  pfBuildOpts(res);
+}
+wireDrop(pfEl('pfBanDrop'), pfEl('pfBanInput'), f => pfLoaded('ban', f));
+wireDrop(pfEl('pfAvDrop'), pfEl('pfAvInput'), f => pfLoaded('av', f));
+['pfBx', 'pfBy', 'pfBz', 'pfAz'].forEach(id => pfEl(id).addEventListener('input', e => {
+  pfEl(id + 'Out').textContent = e.target.value; if (!pf.ban && !pf.av) return;
+  if (!pfEl(id)._raf) pfEl(id)._raf = requestAnimationFrame(() => { pfEl(id)._raf = 0; pfRender(); });
+}));
+pfEl('pfName').addEventListener('input', e => { pfEl('pfNameOut').textContent = e.target.value.trim() || 'اسمك'; });
+pfEl('pfHandle').addEventListener('input', e => { pfEl('pfHandleOut').textContent = e.target.value.trim().replace(/^@/, '') || 'username'; });
+['pfHex1', 'pfHex2'].forEach(id => pfEl(id).addEventListener('click', async () => {
+  const t = pfEl(id).querySelector('code').textContent;
+  try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (_) {} a.remove(); }
+  showToast('اتنسخ ' + t + ' ✓');
+}));
+const pfSave = (cv, name) => cv && cv.toBlob(b => { const u = URL.createObjectURL(b); dl(u, name); setTimeout(() => URL.revokeObjectURL(u), 5000); }, 'image/png');
+pfEl('pfDlBan').addEventListener('click', () => pfSave(pf.banOut, 'بانر-ديسكورد.png'));
+pfEl('pfDlAv').addEventListener('click', () => pfSave(pf.avOut, 'صورة-البروفايل.png'));
+window.addEventListener('resize', debounce(() => { if (pf.ban || pf.av) pfRender(); }, 200));
+
 // ===== التنقل بين الشاشات =====
 const VIEWS = {
   trim: ['workspace', 'تقريب الحواف'], role: ['workspace', 'أيقونة رول ديسكورد'],
   banner: ['banner', 'صورة مربعة لبانر'], resize: ['resize', 'تغيير المقاس'],
   compress: ['compress', 'تصغير الحجم وتغيير الصيغة'], enhance: ['enhance', 'تحسين جودة الصورة'],
-  adjust: ['adjust', 'ضبط الألوان'], blur: ['blur', 'طمس أجزاء من الصورة'], check: ['check', 'فاحص الأيقونة']
+  adjust: ['adjust', 'ضبط الألوان'], blur: ['blur', 'طمس أجزاء من الصورة'], check: ['check', 'فاحص الأيقونة'], profile: ['profile', 'استوديو البروفايل']
 };
 const backSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 document.querySelectorAll('.view').forEach(sec => {

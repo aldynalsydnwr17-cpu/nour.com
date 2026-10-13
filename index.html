@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=29">
+<link rel="stylesheet" href="style.css?v=32">
 </head>
 <body id="top">
 
@@ -55,6 +55,7 @@
   <a href="#/adjust">ضبط الألوان</a>
   <a href="#/blur">طمس أجزاء</a>
   <a href="#/check">فاحص الأيقونة</a>
+  <a href="#/profile">استوديو البروفايل</a>
   <a href="#guides">شروحات</a>
   <a href="#updates">التحديثات</a>
   <button type="button" data-act="install">ثبّت التطبيق</button>
@@ -192,6 +193,17 @@
       <hr>
       <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>فحص 7 نقاط واحدة واحدة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بيظبط أي مشكلة لوحده</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>مقارنة قبل وبعد بحجم 20 و32 و64</li></ul>
       <button class="btn" type="button" data-mode="check">افحص أيقونتك</button>
+    </article>
+    <article class="card">
+      <div class="thumb" aria-hidden="true"><svg viewBox="0 0 300 132" fill="none"><rect x="86" y="10" width="128" height="112" rx="14" fill="currentColor" opacity=".12" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/><rect x="86" y="10" width="128" height="46" rx="14" fill="currentColor" opacity=".3"/><circle cx="116" cy="62" r="19" fill="var(--bg,#111)" stroke="currentColor" stroke-width="4"/><path d="M116 52c1.4 7 4.6 10 10 11-5.4 1-8.6 4-10 11-1.4-7-4.6-10-10-11 5.4-1 8.6-4 10-11z" fill="currentColor"/><rect x="104" y="90" width="52" height="7" rx="3.5" fill="currentColor" opacity=".7"/><rect x="104" y="103" width="34" height="6" rx="3" fill="currentColor" opacity=".35"/><g fill="currentColor"><circle cx="238" cy="30" r="9" opacity=".9"/><circle cx="256" cy="30" r="9" opacity=".6"/><circle cx="274" cy="30" r="9" opacity=".35"/></g></svg></div>
+      <div class="card-head">
+        <div class="tile"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18"/><circle cx="8.5" cy="13.5" r="2.5"/><path d="M13 16h5"/></svg></div>
+        <div><h3>استوديو البروفايل</h3><span class="badge">جديد</span></div>
+      </div>
+      <p class="desc">ارفع البانر وصورة البروفايل وشوفهم مع بعض زي ما هيبانوا في ديسكورد، والذكاء بيختارلك لون البروفايل الأنسب.</p>
+      <hr>
+      <ul class="feats"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ذكاء بيحلل الألوان ويقترح 4 اختيارات</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>معاينة بروفايل ديسكورد بإضاءة خفيفة</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>قص البانر 5:2 والصورة مربعة وتنزيلهم</li></ul>
+      <button class="btn" type="button" data-mode="profile">ابدأ التصميم</button>
     </article>
   </div>
 
@@ -567,6 +579,56 @@
     </div>
   </section>
 
+
+  <section id="profile" class="view">
+    <div class="sec-head"><h2>استوديو البروفايل</h2><p>ارفع البانر وصورة البروفايل، والذكاء بيختارلك اللون الأنسب.</p></div>
+    <div class="panel">
+      <div class="pf-ups">
+        <div class="pf-up" id="pfBanDrop" role="button" tabindex="0"><span class="pf-ui"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="10" rx="2.5"/><path d="m6 12 3.5-3.5L13 12l2-2 3 3"/><path d="M8 19h8"/></svg></span><b>البانر</b><small>600×240 أو أكبر</small><input type="file" id="pfBanInput" accept="image/*"></div>
+        <div class="pf-up" id="pfAvDrop" role="button" tabindex="0"><span class="pf-ui"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span><b>صورة البروفايل</b><small>128×128 أو أكبر</small><input type="file" id="pfAvInput" accept="image/*"></div>
+      </div>
+      <div class="pf-stage" id="pfStage" style="display:none">
+        <div class="pf-glow"></div>
+        <div class="pf-card" id="pfCard">
+          <div class="pf-ban" id="pfBan"><canvas id="pfBanCv"></canvas></div>
+          <div class="pf-av"><canvas id="pfAvCv"></canvas><span class="pf-ph" id="pfAvPh"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span><i class="pf-dot"></i></div>
+          <div class="pf-body">
+            <div class="pf-name" id="pfNameOut">اسمك</div>
+            <div class="pf-handle" id="pfHandleOut">username</div>
+            <div class="pf-sep"></div>
+            <div class="pf-sec">نبذة عني</div>
+            <div class="pf-about" id="pfAboutOut">أهلاً، ده بروفايلي في ديسكورد.</div>
+          </div>
+        </div>
+        <div class="busy" id="pfBusy"></div>
+      </div>
+      <div id="pfCtl" style="display:none">
+        <div class="rp-form pf-form">
+          <div class="rp-f"><label class="rp-lab" for="pfName"><span>الاسم</span></label><input type="text" id="pfName" maxlength="24" placeholder="اسمك" autocomplete="off"></div>
+          <div class="rp-f"><label class="rp-lab" for="pfHandle"><span>اسم المستخدم</span></label><input type="text" id="pfHandle" maxlength="24" placeholder="username" autocomplete="off" dir="ltr"></div>
+        </div>
+        <p class="lbl pf-lbl"><span class="pf-li"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4M17 19h4"/></svg></span>ألوان البروفايل (اختيار الذكاء)</p>
+        <div class="pf-opts" id="pfOpts"></div>
+        <p class="lbl" style="margin-top:14px">شكل الكود اللي يتنسخ</p>
+        <div class="chips" id="pfFmt"><button class="chip" type="button" data-f="nohash" aria-pressed="true">بدون #<small>الأضمن لديسكورد</small></button><button class="chip" type="button" data-f="hash" aria-pressed="false">مع #</button><button class="chip" type="button" data-f="rgb" aria-pressed="false">RGB</button></div>
+        <div class="pf-hexes"><button type="button" class="pf-hex" id="pfHex1"><i></i><code></code><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button><button type="button" class="pf-hex" id="pfHex2"><i></i><code></code><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button></div>
+        <p class="hint" style="text-align:center;margin:6px 0 0">اضغط على اللون عشان تنسخ الكود. لو ديسكورد بيهنّج وقت اللصق جرّب "بدون #"، ولو لسه اكتبه بإيدك على مهلك حرف حرف.</p>
+        <div class="pf-sl">
+          <div class="sl-row"><div class="top"><span>البانر: يمين ← شمال</span><output id="pfBxOut">50</output></div><input type="range" id="pfBx" min="0" max="100" value="50" aria-label="البانر: يمين ← شمال"></div>
+          <div class="sl-row"><div class="top"><span>البانر: فوق ← تحت</span><output id="pfByOut">50</output></div><input type="range" id="pfBy" min="0" max="100" value="50" aria-label="البانر: فوق ← تحت"></div>
+          <div class="sl-row"><div class="top"><span>تقريب البانر</span><output id="pfBzOut">100</output></div><input type="range" id="pfBz" min="100" max="250" value="100" aria-label="تقريب البانر"></div>
+          <div class="sl-row"><div class="top"><span>تقريب صورة البروفايل</span><output id="pfAzOut">100</output></div><input type="range" id="pfAz" min="100" max="250" value="100" aria-label="تقريب صورة البروفايل"></div>
+        </div>
+        <div class="tips" id="pfTips" style="display:none"><h4><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>ملاحظات على صورك</h4><ol id="pfTipsList"></ol></div>
+      </div>
+      <div class="dims" id="pfDims"></div>
+      <div class="actions">
+        <button class="btn" id="pfDlBan" type="button" disabled>تنزيل البانر</button>
+        <button class="btn ghost" id="pfDlAv" type="button" disabled>تنزيل صورة البروفايل</button>
+      </div>
+    </div>
+  </section>
+
   <section id="guides" class="home">
     <div class="sec-head"><h2>شروحات سريعة</h2><p>طريقة استخدام كل أداة في 3 خطوات.</p></div>
     <div class="guides">
@@ -707,7 +769,7 @@
   </section>
 </main>
 
-<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v29 · 9 tools</small></footer>
+<footer>© <b>صنع نور الدين</b> — أدوات بسيطة وسريعة للصور<br><small dir="ltr" style="opacity:.6">v32 · 10 tools</small></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <nav class="dock" aria-label="تنقل سريع">
@@ -717,6 +779,6 @@
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script src="app.js?v=29" defer></script>
+<script src="app.js?v=32" defer></script>
 </body>
 </html>
