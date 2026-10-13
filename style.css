@@ -692,3 +692,9 @@
 .pf-sl{margin-top:8px}
 .pf-av{position:relative;inset:auto;top:auto;margin:-46px 0 0;margin-inline-start:16px}
 .pf-body{margin-top:8px;padding:14px 16px 16px;transform:none}
+
+.bgrm-act{display:none;flex-direction:column;align-items:center;gap:8px;margin-top:14px}
+.bgrm.gate .bgrm-act{display:flex}
+.bgrm-retry{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:13px;border:1.5px solid var(--accent,#7c5cff);background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;transition:background .2s,transform .15s}
+.bgrm-retry:hover{background:var(--accentSoft,rgba(124,92,255,.14));transform:translateY(-1px)}
+.bgrm-go{background:none;border:0;color:inherit;opacity:.65;font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:4px}

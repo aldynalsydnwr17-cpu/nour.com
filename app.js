@@ -42,7 +42,45 @@ let holdCmp = false;
 function handleFile(file) {
   if (!file.type.startsWith('image/')) return;
   const reader = new FileReader();
-  reader.onload = async e => {
+  reader.onload = e => gateAndRun(e.target.result);
+  reader.readAsDataURL(file);
+}
+let pendingSrc = null;
+// لو الصورة خلفيتها مش شفافة في أداة الرول: نوقف التحليل ونطلّع رابط إزالة الخلفية مع "إعادة محاولة"
+function isOpaqueImage(src) {
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 512 / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+      const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
+      const d = x.getImageData(0, 0, c.width, c.height).data; let n = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] < 250 && ++n > 3) return res(false);
+      res(true);
+    };
+    im.onerror = () => res(false); im.src = src;
+  });
+}
+function showBgGate(src) {
+  ++procRun; mainBusy.stop();
+  document.getElementById('stage').classList.remove('scanning');
+  beforeImg.src = src; beforeImg.style.clipPath = ''; previewRow.style.display = 'flex';
+  holdCmp = true; setCmp(100); downloadBtn.disabled = true;
+  document.getElementById('rolePrev').style.display = 'none';
+  dims.textContent = 'الصورة خلفيتها مش شفافة. شيل الخلفية من الموقع، وبعدين اضغط "إعادة محاولة" واختار الصورة الجاهزة.';
+  const b = document.querySelector('#bgRmSlot .bgrm'); b.classList.add('gate'); b.style.display = 'block';
+  document.getElementById('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+async function gateAndRun(src) {
+  pendingSrc = src;
+  const b = document.querySelector('#bgRmSlot .bgrm'); if (b) b.classList.remove('gate');
+  if (roleOpt.checked && await isOpaqueImage(src)) { showBgGate(src); return; }
+  return runFile(src);
+}
+async function runFile(src) {
+  {
+    const e = { target: { result: src } };
+    holdCmp = false;
     beforeImg.src = e.target.result;
     previewRow.style.display = 'flex';
     downloadBtn.disabled = true;
@@ -83,8 +121,7 @@ function handleFile(file) {
     setCmp(0);
     sweepCmp(0, 50, 900);
     if (roleOpt.checked) showToast('أداة رولز ديسكورد بتحاول تظبط الصورة على قد ما تقدر، لكن ديسكورد بيعرض أيقونة الرول بحجم ثابت حوالي 20 بكسل.', 7000);
-  };
-  reader.readAsDataURL(file);
+  }
 }
 
 let lastInfo = null;
@@ -893,9 +930,12 @@ function busyKit(el) {
   const sl = el.querySelector('.sl'), big = el.querySelector('.big');
   const t = el.querySelector('.t'), bar = el.querySelector('.prog b'), pct = el.querySelector('.pct'), sw = el.querySelector('.sw2');
   const ease = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  let token = 0;
   return {
+    stop() { token++; el.classList.remove('on'); },                 // وقف الأنيميشن فورًا
     // الشريط بينزل بنفس نسبة التقدم، وبيبلّغ onProg بالنسبة عشان الصفحة تكشف النتيجة وراه
     async play(steps, onProg) {
+      const my = ++token;
       el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
       bar.style.width = '0%';
       const total = steps.reduce((a, x) => a + x.ms, 0);
@@ -908,22 +948,26 @@ function busyKit(el) {
       set(0);
       let done = 0;
       for (const st of steps) {
+        if (my !== token) return;
         t.textContent = st.t;
         sw.style.display = st.color ? 'inline-block' : 'none';
         if (st.color) sw.style.background = st.color;
         const from = done / total, to = (done + st.ms) / total;
         const move = st.ms * .8, t0 = performance.now();
         await new Promise(res => (function f(now) {
+          if (my !== token) return res();
           const k = Math.min(1, (now - t0) / move);
           set(from + (to - from) * ease(k));
           k < 1 ? requestAnimationFrame(f) : res();
         })(t0));
+        if (my !== token) return;
         await new Promise(r => setTimeout(r, st.ms * .2));
         done += st.ms;
       }
+      if (my !== token) return;
       set(1);
       await new Promise(r => setTimeout(r, 600));
-      el.classList.remove('on');
+      if (my === token) el.classList.remove('on');
     }
   };
 }
@@ -1702,7 +1746,11 @@ xDownload.addEventListener('click', () => {
 // ===== رابط إزالة الخلفية (بيظهر لو الصورة خلفيتها مش شفافة) =====
 const BGRM_URL = 'https://www.iloveimg.com/ar/remove-background';
 document.querySelectorAll('.bgrm-slot').forEach(s => {
-  s.innerHTML = '<div class="bgrm" style="display:none"><span class="bgi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg></span><p>الصورة دي خلفيتها مش شفافة. شيل الخلفية الأول من الموقع ده وبعدين ارفعها هنا.</p><a href="' + BGRM_URL + '" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>iLoveIMG</a><small>موقع إزالة خلفية</small></div>';
+  s.innerHTML = '<div class="bgrm" style="display:none"><span class="bgi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke-dasharray="3 3"/><circle cx="9" cy="9.5" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg></span><p>الصورة دي خلفيتها مش شفافة. شيل الخلفية الأول من الموقع ده وبعدين ارفعها هنا.</p><a href="' + BGRM_URL + '" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>iLoveIMG</a><small>موقع إزالة خلفية</small>' + (s.id === 'bgRmSlot' ? '<div class="bgrm-act"><button type="button" class="bgrm-retry"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>إعادة محاولة</button><button type="button" class="bgrm-go">كمّل بنفس الصورة</button></div>' : '') + '</div>';
+  if (s.id === 'bgRmSlot') {
+    s.querySelector('.bgrm-retry').addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
+    s.querySelector('.bgrm-go').addEventListener('click', () => { s.querySelector('.bgrm').classList.remove('gate'); if (pendingSrc) runFile(pendingSrc); });
+  }
 });
 function showBgRm(slotId, on) { const b = document.querySelector('#' + slotId + ' .bgrm'); if (b) b.style.display = on ? 'block' : 'none'; }
 
