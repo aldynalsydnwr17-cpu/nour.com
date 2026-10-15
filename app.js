@@ -8,6 +8,28 @@ const dims = document.getElementById('dims');
 const downloadBtn = document.getElementById('downloadBtn');
 const resetBtn = document.getElementById('resetBtn');
 const squareOpt = document.getElementById('squareOpt');
+// ===== حفظ آخر نتيجة لكل أداة (IndexedDB) =====
+const LastRes = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    try { const r = indexedDB.open('nourdin', 1); r.onupgradeneeded = () => r.result.createObjectStore('last', { keyPath: 'view' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); }
+  }));
+  const tx = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction('last', mode); const rq = fn(t.objectStore('last')); t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); };
+  return { put: rec => tx('readwrite', s => s.put(rec)), get: v => tx('readonly', s => s.get(v)), del: v => tx('readwrite', s => s.delete(v)) };
+})();
+const _cou = URL.createObjectURL.bind(URL), lrTimers = {};
+URL.createObjectURL = function (obj) {                          // أي صورة نتيجة بتتعمل جوه أداة بتتحفظ تلقائيًا
+  const url = _cou(obj);
+  try {
+    const view = document.body && document.body.dataset.view;
+    if (view && view !== 'home' && obj instanceof Blob && !(obj instanceof File) && /^image\//.test(obj.type) && obj.size < 8 * 1024 * 1024) {
+      clearTimeout(lrTimers[view]);
+      lrTimers[view] = setTimeout(() => { LastRes.put({ view, blob: obj, t: Date.now() }).then(() => lrRefresh(view)).catch(() => {}); }, 900);
+    }
+  } catch (e) { /* لو التخزين مش متاح نكمّل عادي */ }
+  return url;
+};
+
 const roleOpt = document.getElementById('roleOpt');
 
 let resultBlobUrl = null;
@@ -64,12 +86,12 @@ function isOpaqueImage(src) {
 function showBgGate(src) {
   ++procRun; mainBusy.stop();
   document.getElementById('stage').classList.remove('scanning');
-  beforeImg.src = src; beforeImg.style.clipPath = ''; previewRow.style.display = 'flex';
-  holdCmp = true; setCmp(100); downloadBtn.disabled = true;
+  previewRow.style.display = 'none';                          // الصورة والأنيميشن يختفوا، ومكانهم يظهر رابط إزالة الخلفية
+  holdCmp = false; downloadBtn.disabled = true;
   document.getElementById('rolePrev').style.display = 'none';
   dims.textContent = 'الصورة خلفيتها مش شفافة. شيل الخلفية من الموقع، وبعدين اضغط "إعادة محاولة" واختار الصورة الجاهزة.';
   const b = document.querySelector('#bgRmSlot .bgrm'); b.classList.add('gate'); b.style.display = 'block';
-  document.getElementById('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
+  document.querySelector('#bgRmSlot').scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 async function gateAndRun(src) {
   pendingSrc = src;
@@ -1142,7 +1164,7 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   root.setAttribute('data-theme', next);
   try { localStorage.setItem('theme', next); } catch (e) {}
   const m = document.querySelector('meta[name=theme-color]');
-  if (m) m.content = next === 'light' ? '#f5f5fb' : next === 'discord' ? '#313338' : '#0a0a12';
+  if (m) m.content = next === 'light' ? '#f3f8f8' : next === 'discord' ? '#313338' : '#0b0b0e';
   showToast(next === 'light' ? 'الوضع الفاتح' : next === 'discord' ? 'ثيم ديسكورد' : 'الوضع الداكن', 1200);
 });
 
@@ -1717,7 +1739,7 @@ function xDrawRect() {
   if (!xDrag) return;
   const x = Math.min(xDrag.a.x, xDrag.b.x) * xOver.width, y = Math.min(xDrag.a.y, xDrag.b.y) * xOver.height;
   const w = Math.abs(xDrag.b.x - xDrag.a.x) * xOver.width, h = Math.abs(xDrag.b.y - xDrag.a.y) * xOver.height;
-  c.fillStyle = 'rgba(116,104,255,.25)'; c.fillRect(x, y, w, h);
+  c.fillStyle = 'rgba(45,212,191,.25)'; c.fillRect(x, y, w, h);
   c.lineWidth = Math.max(2, xOver.width / 300); c.strokeStyle = '#fff'; c.setLineDash([10, 7]); c.strokeRect(x, y, w, h);
 }
 xOver.addEventListener('pointerdown', e => { e.preventDefault(); xOver.setPointerCapture(e.pointerId); const p = xPos(e); xDrag = {a: p, b: p}; });
@@ -2161,6 +2183,37 @@ document.querySelectorAll('.view').forEach(sec => {
   bar.querySelector('.back').addEventListener('click', () => { location.hash = '#tools'; });
   sec.insertBefore(bar, sec.firstChild);
 });
+
+// واجهة "آخر نتيجة محفوظة" فوق كل أداة
+const LR_NAMES = { trim: 'تقريب-الحواف', role: 'أيقونة-رول', banner: 'بانر', resize: 'مقاس-جديد', compress: 'مضغوطة', enhance: 'محسّنة', adjust: 'ألوان-معدّلة', blur: 'مطموسة', check: 'أيقونة-متظبطة', profile: 'بروفايل' };
+function lrAgo(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'من لحظات'; if (m < 60) return 'من ' + m + ' دقيقة';
+  const h = Math.round(m / 60); if (h < 24) return 'من ' + h + ' ساعة'; return 'من ' + Math.round(h / 24) + ' يوم';
+}
+const lrBoxes = {};
+function lrBox(view) {
+  if (lrBoxes[view]) return lrBoxes[view];
+  const sec = document.getElementById(VIEWS[view][0]); if (!sec) return null;
+  const box = document.createElement('div'); box.className = 'lastres'; box.style.display = 'none';
+  box.innerHTML = '<img alt=""><div class="lr-tx"><b>آخر نتيجة محفوظة</b><small></small></div><div class="lr-bt"><button type="button" class="lr-dl">تنزيل</button><button type="button" class="lr-rm" aria-label="مسح النتيجة المحفوظة">مسح</button></div>';
+  sec.insertBefore(box, sec.querySelector('.backbar').nextSibling);
+  box.querySelector('.lr-rm').addEventListener('click', async () => { try { await LastRes.del(view); } catch (e) {} lrRefresh(view); });
+  box.querySelector('.lr-dl').addEventListener('click', async () => {
+    try { const r = await LastRes.get(view); if (!r) return; const u = _cou(r.blob); dl(u, LR_NAMES[view] + (r.blob.type.includes('jpeg') ? '.jpg' : r.blob.type.includes('webp') ? '.webp' : '.png')); setTimeout(() => URL.revokeObjectURL(u), 5000); } catch (e) {}
+  });
+  return (lrBoxes[view] = box);
+}
+async function lrRefresh(view) {
+  const box = lrBox(view); if (!box) return;
+  Object.keys(lrBoxes).forEach(k => { if (k !== view) lrBoxes[k].style.display = 'none'; });   // trim و role بيشاركوا نفس الشاشة
+  let r = null; try { r = await LastRes.get(view); } catch (e) {}
+  const img = box.querySelector('img'); if (img.dataset.u) { URL.revokeObjectURL(img.dataset.u); img.dataset.u = ''; }
+  if (!r || document.body.dataset.view !== view) { box.style.display = 'none'; return; }
+  const u = _cou(r.blob); img.src = u; img.dataset.u = u;
+  box.querySelector('small').textContent = lrAgo(r.t) + ' · ' + fmtSize(r.blob.size);
+  box.style.display = 'flex';
+}
 let routeToken = 0;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function applyRoute() {
@@ -2176,6 +2229,7 @@ function applyRoute() {
     }
     document.querySelector('#' + id + ' .trail b').textContent = title;
     if (key === 'check') loadAI();
+    lrRefresh(key);
     body.dataset.view = key;
     document.querySelectorAll('.intro').forEach(x => x.remove());
     const srcThumb = !reduceMotion && document.querySelector(`.card [data-mode="${key}"]`)?.closest('.card')?.querySelector('.thumb');
@@ -2265,3 +2319,10 @@ Object.keys(WARNS).forEach(id => {
   sync();
 });
 
+
+/* v37: تعبئة السلايدر */
+(function(){const SK=':not(#cmp):not(#eCmp)';
+function fill(r){const mn=+r.min||0,mx=+r.max||100;r.style.setProperty('--p',((+r.value-mn)/(mx-mn)*100)+'%')}
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('input[type=range]'+SK))fill(e.target)},true);
+function all(){document.querySelectorAll('input[type=range]'+SK).forEach(fill)}
+all();addEventListener('hashchange',()=>setTimeout(all,50));setInterval(all,800);})();
