@@ -12,8 +12,8 @@
 <meta name="theme-color" content="#0b0b0e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=41">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=42">
 </head>
 <body id="top">
 
@@ -675,18 +675,8 @@
       <div id="hdMake" style="display:none">
         <div class="rp-form"><div class="rp-f"><label class="rp-lab" for="hdName"><span>الاسم الظاهر (اختياري)</span></label><input type="text" id="hdName" maxlength="24" placeholder="اسمك" autocomplete="off"></div>
         <div class="rp-f"><label class="rp-lab" for="hdPick"><span>اليوزر اللي في الصورة</span></label><input type="text" id="hdPick" maxlength="32" placeholder="username" autocomplete="off" autocapitalize="off" dir="ltr"></div></div>
-        <p class="lbl">شكل الصورة</p>
-        <div class="chips" id="hdStyle">
-          <button class="chip" type="button" data-s="neon" aria-pressed="true">نيون<small>توهج بلون صورتك</small></button>
-          <button class="chip" type="button" data-s="glass" aria-pressed="false">زجاج<small>كارت شفاف</small></button>
-          <button class="chip" type="button" data-s="clean" aria-pressed="false">بسيط<small>لون واحد</small></button>
-          <button class="chip" type="button" data-s="gold" aria-pressed="false">ذهبي<small>فخم</small></button>
-        </div>
-        <div class="hd-stage"><canvas id="hdCanvas" width="1080" height="1080"></canvas></div>
-        <p class="hint" style="text-align:center" id="hdHint"></p>
-        <div class="actions"><button class="btn" id="hdDl" type="button">تنزيل الصورة</button></div>
         <div class="hd-shot">
-          <p class="lbl">معاينة على حسابك</p>
+          <p class="lbl">بروفايلك بعد تغيير اليوزر</p>
           <p class="hint" style="margin-bottom:10px">ارفع سكرين شوت حسابك كله، ودوس على اليوزر القديم (تقدر تحدد أكتر من مكان). الأداة بتشيله وتحط اليوزر الجديد بنفس اللون والخلفية، وتوريك شكله.</p>
           <div id="hdShotDrop" role="button" tabindex="0">
             <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
@@ -711,6 +701,17 @@
             </div>
           </div>
         </div>
+        <p class="lbl" style="margin-top:22px">كارت اليوزر (اختياري)</p>
+        <p class="lbl">شكل الصورة</p>
+        <div class="chips" id="hdStyle">
+          <button class="chip" type="button" data-s="neon" aria-pressed="true">نيون<small>توهج بلون صورتك</small></button>
+          <button class="chip" type="button" data-s="glass" aria-pressed="false">زجاج<small>كارت شفاف</small></button>
+          <button class="chip" type="button" data-s="clean" aria-pressed="false">بسيط<small>لون واحد</small></button>
+          <button class="chip" type="button" data-s="gold" aria-pressed="false">ذهبي<small>فخم</small></button>
+        </div>
+        <div class="hd-stage"><canvas id="hdCanvas" width="1080" height="1080"></canvas></div>
+        <p class="hint" style="text-align:center" id="hdHint"></p>
+        <div class="actions"><button class="btn" id="hdDl" type="button">تنزيل الصورة</button></div>
       </div>
       <p class="hint" style="text-align:center;margin-top:12px">الموقع مش بيقدر يعرف اليوزر متاح ولا لأ، ديسكورد مفيش وسيلة عامة تتأكد منها. جرّب اليوزر في إعدادات حسابك، ولو اتاخد ارجع هنا وعدّله.</p>
     </div>
@@ -866,6 +867,6 @@
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script src="app.js?v=41" defer></script>
+<script src="app.js?v=42" defer></script>
 </body>
 </html>

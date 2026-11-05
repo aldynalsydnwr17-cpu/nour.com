@@ -2520,8 +2520,8 @@ function shReplace(x, base, r, txt) {
   const id = x.createImageData(ew, eh);
   for (let j = 0; j < eh; j++) for (let i = 0; i < ew; i++) { const b = bgAt(i, j), o = (j * ew + i) * 4; id.data[o] = b[0]; id.data[o + 1] = b[1]; id.data[o + 2] = b[2]; id.data[o + 3] = 255; }
   x.putImageData(id, ex, ey);
-  let fs = r.h * (r.tight ? 1.08 : 0.82) * shSize; x.font = `500 ${fs}px Inter,"Segoe UI",system-ui,sans-serif`;
-  const tw = x.measureText(txt).width; if (tw > r.w * 1.02) { fs *= r.w * 1.02 / tw; x.font = `500 ${fs}px Inter,"Segoe UI",system-ui,sans-serif`; }
+  let fs = r.h * (r.tight ? 1.08 : 0.82) * shSize; x.font = `500 ${fs}px "gg sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif`;
+  const tw = x.measureText(txt).width; if (tw > r.w * 1.02) { fs *= r.w * 1.02 / tw; x.font = `500 ${fs}px "gg sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif`; }
   x.save(); x.direction = 'ltr'; x.textBaseline = 'alphabetic'; x.fillStyle = `rgb(${tc[0] | 0},${tc[1] | 0},${tc[2] | 0})`;
   const w2 = x.measureText(txt).width; let tx = r.x; x.textAlign = 'left';
   if (shAlign === 'center') tx = r.x + (r.w - w2) / 2; else if (shAlign === 'right') tx = r.x + r.w - w2;
@@ -2553,7 +2553,7 @@ wireDrop(document.getElementById('hdShotDrop'), document.getElementById('hdShotI
     const tx = t.getContext('2d', { willReadFrequently: true }); tx.drawImage(shImg, 0, 0, t.width, t.height);
     try { const k2 = shK / kd; shCands = shDetect(tx, t.width, t.height).map(b => ({ x: b.x * k2, y: b.y * k2, w: b.w * k2, h: b.h * k2 })); } catch (e) { shCands = []; } }
   document.getElementById('hdShotWrap').style.display = 'block'; document.getElementById('hdShotT').textContent = 'تم رفع السكرين شوت، اضغط لتغييره';
-  shRedraw();
+  shRedraw(); document.fonts.load('500 30px "Noto Sans"').then(() => shRedraw()).catch(() => {});
 });
 const shPt = e => { const b = shCv.getBoundingClientRect(); return [(e.clientX - b.left) * shCv.width / b.width, (e.clientY - b.top) * shCv.height / b.height]; };
 shCv.addEventListener('pointerdown', e => { if (!shImg) return; e.preventDefault(); shCv.setPointerCapture(e.pointerId); const [px, py] = shPt(e); shDrag = { x: px, y: py, w: 0, h: 0, ox: px, oy: py }; });
