@@ -342,7 +342,7 @@
   /* شاشات الأدوات: كل أداة في شاشة لوحدها */
   .view{display:none;margin-top:26px}
   body[data-view=trim] #workspace,body[data-view=role] #workspace,body[data-view=banner] #banner,body[data-view=resize] #resize,
-  body[data-view=compress] #compress,body[data-view=enhance] #enhance,body[data-view=adjust] #adjust,body[data-view=blur] #blur,body[data-view=check] #check,body[data-view=profile] #profile{display:block}
+  body[data-view=compress] #compress,body[data-view=enhance] #enhance,body[data-view=adjust] #adjust,body[data-view=blur] #blur,body[data-view=check] #check,body[data-view=profile] #profile,body[data-view=handle] #handle{display:block}
   body[data-view]:not([data-view=home]) .home{display:none}
   @keyframes vIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   .backbar{display:flex;align-items:center;gap:14px;padding:6px 0 18px;flex-wrap:wrap}
@@ -808,3 +808,17 @@ input[type=range]:not(#cmp):not(#eCmp):active::-webkit-slider-thumb{transform:sc
 .opts label:has(input:checked) .ic svg{filter:none}
 .rp-ic{border-radius:10px !important;width:32px !important;height:32px !important}
 .tips h4 svg{padding:5px;box-sizing:border-box;width:30px;height:30px;border-radius:9px;background:var(--accentSoft);box-shadow:0 0 0 1px var(--accentLine),0 0 14px -2px color-mix(in srgb,var(--accent) 60%,transparent)}
+
+/* يوزر ديسكورد */
+#hdDrop{border:1.5px dashed var(--accentLine);border-radius:20px;padding:30px 16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(45,212,191,.04);margin-bottom:6px}
+#hdDrop:hover,#hdDrop.drag{background:var(--accentSoft);border-color:var(--accent)}
+#hdDrop .up{width:56px;height:56px;margin:0 auto 12px;border-radius:16px;background:var(--accentSoft);display:grid;place-items:center;color:var(--accent)}
+#hdDrop span{display:block;color:var(--muted);font-size:13px}
+#hdInput{display:none}
+.hd-list{display:none;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.hd-sug{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:16px;padding:12px 6px;cursor:pointer;display:grid;gap:2px;justify-items:center;transition:.15s;min-width:0}
+.hd-sug b{font-family:Inter,monospace;font-size:20px;letter-spacing:.06em}
+.hd-sug small{font-size:11px;color:var(--muted);line-height:1.4}
+.hd-sug:hover,.hd-sug.on{border-color:var(--accent);background:var(--accentSoft)}
+.hd-stage{margin:16px 0 8px;border-radius:24px;overflow:hidden;border:1px solid var(--line);background:#000}
+.hd-stage canvas{display:block;width:100%;height:auto}
