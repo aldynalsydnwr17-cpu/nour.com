@@ -2345,15 +2345,14 @@ function hdPalette(img) {
 }
 const HD_C = 'bdfgjklmnprstvxz', HD_V = 'aeiou';
 function hdGen(kind, n, seed) {
-  const R = hdRng(seed), pick = s => s[Math.floor(R() * s.length)], out = new Set(), tries = 0;
-  const warm = hdVibe.hue < .17 || hdVibe.hue > .9, C = warm ? 'bdfgjkmnprstvxzk' : 'dfklmnprstvwyzlx';
+  // نمط: 4 خانات من حروف وأرقام بس، فيها حرف ورقم على الأقل (زي x2f2 و86ac وazj3)
+  const R = hdRng(seed), L = 'abcdefghijklmnopqrstuvwxyz', D = '0123456789', out = new Set();
   let guard = 0;
-  while (out.size < n && guard++ < 400) {
-    const p = R(); let s;
-    if (kind === 'word') s = p < .55 ? pick(C) + pick(HD_V) + pick(C) + pick(HD_V) : p < .8 ? pick(HD_V) + pick(C) + pick(HD_V) + pick(C) : pick(C) + pick(HD_V) + pick(C) + pick('xznkr');
-    else if (kind === 'num') s = p < .5 ? pick(C) + pick(HD_V) + pick(C) + String(1 + Math.floor(R() * 9)) : p < .8 ? pick(C) + pick(HD_V) + pick(HD_V + 'y') + String(1 + Math.floor(R() * 9)) : pick(C) + pick(HD_V) + String(Math.floor(R() * 10)) + String(Math.floor(R() * 10));
-    else s = p < .5 ? pick(C) + pick(HD_V) + '_' + pick(C + HD_V) : p < .8 ? pick(C) + '.' + pick(HD_V) + pick(C) : pick(C) + pick(HD_V) + pick(C) + '_';
-    if (s.length === 4 && /^[a-z0-9_.]+$/.test(s)) out.add(s);
+  while (out.size < n && guard++ < 600) {
+    const nl = [1, 2, 2, 2, 3, 3][Math.floor(R() * 6)], isL = [true, true, true, true].map((_, k) => k < nl);
+    for (let k = isL.length - 1; k > 0; k--) { const m = Math.floor(R() * (k + 1)); [isL[k], isL[m]] = [isL[m], isL[k]]; }
+    const s = isL.map(f => f ? L[Math.floor(R() * 26)] : D[Math.floor(R() * 10)]).join('');
+    if (/[a-z]/.test(s) && /\d/.test(s)) out.add(s);
   }
   return [...out];
 }
@@ -2374,7 +2373,6 @@ function hdVariants(src, keep) {
     if (i < base.length - 1) add(base.slice(0, i) + base[i + 1] + base[i] + base.slice(i + 2), 'بدّلت ترتيب حرفين');
   });
   ['x', 'z', 'k'].forEach(ch => { add(base.slice(0, -1) + ch, 'غيّرت آخر حرف'); add(ch + base.slice(1), 'غيّرت أول حرف'); });
-  add('_' + base, 'زوّدت _ في الأول'); add(base + '_', 'زوّدت _ في الآخر'); add(base.slice(0, 2) + '.' + base.slice(2), 'زوّدت نقطة'); add(base.slice(0, 2) + '_' + base.slice(2), 'زوّدت _ في النص');
   const all = [...res.entries()];
   for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
   return all.slice(0, 12);
@@ -2457,7 +2455,6 @@ wireDrop(document.getElementById('hdDrop'), document.getElementById('hdInput'), 
   hdRegen(); if (hdCur) hdRender();
 });
 chipsOf('hdMode', c => { hdModeV = c.dataset.m; document.getElementById('hdSuggest').style.display = hdModeV === 'suggest' ? '' : 'none'; document.getElementById('hdEdit').style.display = hdModeV === 'edit' ? '' : 'none'; hdList.innerHTML = ''; hdList.style.display = 'none'; if (hdModeV === 'suggest') hdRegen(); });
-chipsOf('hdKind', c => { hdKind = c.dataset.k; hdRegen(); });
 chipsOf('hdLen', c => { hdLenM = c.dataset.l; if (document.getElementById('hdOwn').value.trim()) hdRegen(); });
 chipsOf('hdStyle', c => { hdStyle = c.dataset.s; hdRender(); });
 document.getElementById('hdMore').addEventListener('click', hdRegen);
