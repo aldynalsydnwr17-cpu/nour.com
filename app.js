@@ -2446,6 +2446,7 @@ async function hdRender() {
   x.restore();
   x.textAlign = 'center'; x.font = '600 34px Inter,sans-serif'; x.fillStyle = 'rgba(255,255,255,.55)'; x.fillText('@' + h, cx, by + 80);
   x.font = '600 28px Inter,sans-serif'; x.fillStyle = 'rgba(255,255,255,.35)'; x.fillText('Nour', cx, W - 54);
+  if (typeof shRedraw === 'function') shRedraw();
   document.getElementById('hdHint').textContent = `${h.length} ${h.length === 1 ? 'خانة' : 'خانات'} · ${/^[a-z0-9_.]{2,32}$/.test(h) ? 'شكله مقبول في ديسكورد' : 'غير مقبول'}`;
 }
 hdCv.style.width = '100%';
@@ -2466,3 +2467,68 @@ document.getElementById('hdPick').addEventListener('input', debounce(() => { hdC
 document.getElementById('hdName').addEventListener('input', debounce(hdRender, 150));
 document.getElementById('hdDl').addEventListener('click', () => { hdCv.toBlob(b => { const u = URL.createObjectURL(b); dl(u, `يوزر-${(document.getElementById('hdPick').value || 'username')}.png`); setTimeout(() => URL.revokeObjectURL(u), 3000); }); });
 hdShowList(hdGen('word', 12, hdSeed));
+
+// ===== معاينة اليوزر الجديد على سكرين شوت =====
+const shCv = document.getElementById('hdShotCv');
+let shImg = null, shK = 1, shRects = [], shAlign = 'left', shSize = 1, shDrag = null;
+const shTxt = () => (document.getElementById('hdPick').value || hdCur || '').toLowerCase().replace(/[^a-z0-9_.]/g, '');
+function shReplace(x, base, r, txt) {
+  const W = base.width, H = base.height, d = base.data, cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const px = (X, Y) => { X = cl(X, 0, W - 1); Y = cl(Y, 0, H - 1); const i = (Y * W + X) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+  const P = Math.max(3, Math.round(r.h * 0.12)), PX = Math.max(P, Math.round(r.h * 0.35)), ex = Math.max(0, Math.round(r.x) - PX), ey = Math.max(0, Math.round(r.y) - P);
+  const ew = Math.min(W, Math.round(r.x + r.w) + PX) - ex, eh = Math.min(H, Math.round(r.y + r.h) + P) - ey;
+  if (ew < 2 || eh < 2) return;
+  const avg = (X, Y0, dy) => { let s = [0, 0, 0]; for (let k = 0; k < 3; k++) { const p = px(X, Y0 + dy * k); s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; } return s.map(v => v / 3); };
+  const top = [], bot = [];
+  for (let i = 0; i < ew; i++) { top.push(avg(ex + i, ey - 1, -1)); bot.push(avg(ex + i, ey + eh, 1)); }
+  const bgAt = (i, j) => { const t = (j + .5) / eh, a = top[i], b = bot[i]; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+  const ds = [];
+  for (let j = 0; j < eh; j++) for (let i = 0; i < ew; i++) { const o = px(ex + i, ey + j), b = bgAt(i, j); ds.push([Math.abs(o[0] - b[0]) + Math.abs(o[1] - b[1]) + Math.abs(o[2] - b[2]), o]); }
+  ds.sort((p, q) => q[0] - p[0]);
+  const n = Math.max(3, Math.floor(ds.length * .04)); let tc = [0, 0, 0];
+  for (let k = 0; k < n; k++) { tc[0] += ds[k][1][0]; tc[1] += ds[k][1][1]; tc[2] += ds[k][1][2]; }
+  tc = tc.map(v => v / n);
+  if (ds[0][0] < 60) { const b = bgAt(0, 0); tc = lumOf(b) > .4 ? [20, 20, 24] : [245, 245, 248]; }
+  const id = x.createImageData(ew, eh);
+  for (let j = 0; j < eh; j++) for (let i = 0; i < ew; i++) { const b = bgAt(i, j), o = (j * ew + i) * 4; id.data[o] = b[0]; id.data[o + 1] = b[1]; id.data[o + 2] = b[2]; id.data[o + 3] = 255; }
+  x.putImageData(id, ex, ey);
+  let fs = r.h * 0.82 * shSize; x.font = `600 ${fs}px Inter,"Segoe UI",system-ui,sans-serif`;
+  const tw = x.measureText(txt).width; if (tw > r.w * 1.02) { fs *= r.w * 1.02 / tw; x.font = `600 ${fs}px Inter,"Segoe UI",system-ui,sans-serif`; }
+  x.save(); x.direction = 'ltr'; x.textBaseline = 'alphabetic'; x.fillStyle = `rgb(${tc[0] | 0},${tc[1] | 0},${tc[2] | 0})`;
+  const w2 = x.measureText(txt).width; let tx = r.x; x.textAlign = 'left';
+  if (shAlign === 'center') tx = r.x + (r.w - w2) / 2; else if (shAlign === 'right') tx = r.x + r.w - w2;
+  x.fillText(txt, tx, r.y + r.h / 2 + fs * 0.36); x.restore();
+}
+function shDraw(cv, guides) {
+  if (!shImg) return;
+  cv.width = Math.round(shImg.naturalWidth * shK); cv.height = Math.round(shImg.naturalHeight * shK);
+  const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(shImg, 0, 0, cv.width, cv.height);
+  const base = x.getImageData(0, 0, cv.width, cv.height), txt = shTxt();
+  if (txt) shRects.forEach(r => shReplace(x, base, r, txt));
+  if (guides) {
+    x.save(); x.lineWidth = Math.max(2, cv.width / 300); x.setLineDash([10, 6]); x.strokeStyle = '#2dd4bf';
+    const all = shDrag ? [...shRects, shDrag] : []; if (!txt) all.push(...shRects);
+    all.forEach(r => x.strokeRect(r.x, r.y, r.w, r.h)); x.restore();
+  }
+}
+function shRedraw() {
+  shDraw(shCv, true);
+  const on = shRects.length > 0;
+  document.getElementById('hdShUndo').disabled = !on; document.getElementById('hdShClear').disabled = !on; document.getElementById('hdShDl').disabled = !(on && shTxt());
+}
+wireDrop(document.getElementById('hdShotDrop'), document.getElementById('hdShotInput'), async file => {
+  let r; try { r = await readImage(file); } catch (e) { return; }
+  shImg = r.img; shK = Math.min(1, 2400 / Math.max(r.img.naturalWidth, r.img.naturalHeight)); shRects = []; shDrag = null;
+  document.getElementById('hdShotWrap').style.display = 'block'; document.getElementById('hdShotT').textContent = 'تم رفع السكرين شوت، اضغط لتغييره';
+  shRedraw();
+});
+const shPt = e => { const b = shCv.getBoundingClientRect(); return [(e.clientX - b.left) * shCv.width / b.width, (e.clientY - b.top) * shCv.height / b.height]; };
+shCv.addEventListener('pointerdown', e => { if (!shImg) return; e.preventDefault(); shCv.setPointerCapture(e.pointerId); const [px, py] = shPt(e); shDrag = { x: px, y: py, w: 0, h: 0, ox: px, oy: py }; });
+shCv.addEventListener('pointermove', e => { if (!shDrag) return; const [px, py] = shPt(e); shDrag.x = Math.min(px, shDrag.ox); shDrag.y = Math.min(py, shDrag.oy); shDrag.w = Math.abs(px - shDrag.ox); shDrag.h = Math.abs(py - shDrag.oy); shRedraw(); });
+const shEnd = () => { if (!shDrag) return; const r = shDrag; shDrag = null; if (r.w > 8 && r.h > 8) shRects.push({ x: r.x, y: r.y, w: r.w, h: r.h }); else showToast('اسحب مستطيل أكبر على اليوزر'); shRedraw(); if (shRects.length && !shTxt()) showToast('اختار يوزر الأول من فوق'); };
+shCv.addEventListener('pointerup', shEnd); shCv.addEventListener('pointercancel', shEnd);
+document.getElementById('hdShUndo').addEventListener('click', () => { shRects.pop(); shRedraw(); });
+document.getElementById('hdShClear').addEventListener('click', () => { shRects = []; shRedraw(); });
+chipsOf('hdAlign', c => { shAlign = c.dataset.a; shRedraw(); });
+document.getElementById('hdSz').addEventListener('input', e => { shSize = e.target.value / 100; document.getElementById('hdSzOut').textContent = e.target.value; shRedraw(); });
+document.getElementById('hdShDl').addEventListener('click', () => { const t = document.createElement('canvas'); shDraw(t, false); t.toBlob(b => { const u = URL.createObjectURL(b); dl(u, `معاينة-${shTxt()}.png`); setTimeout(() => URL.revokeObjectURL(u), 3000); }); });

@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="style.css?v=40">
 </head>
 <body id="top">
 
@@ -685,6 +685,32 @@
         <div class="hd-stage"><canvas id="hdCanvas" width="1080" height="1080"></canvas></div>
         <p class="hint" style="text-align:center" id="hdHint"></p>
         <div class="actions"><button class="btn" id="hdDl" type="button">تنزيل الصورة</button></div>
+        <div class="hd-shot">
+          <p class="lbl">معاينة على حسابك</p>
+          <p class="hint" style="margin-bottom:10px">ارفع سكرين شوت من حسابك، واسحب مستطيل على اليوزر القديم (تقدر تحدد أكتر من مكان). الأداة بتشيله وتحط اليوزر الجديد بنفس اللون والخلفية، وتوريك شكله.</p>
+          <div id="hdShotDrop" role="button" tabindex="0">
+            <div class="up"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></div>
+            <p id="hdShotT">ارفع سكرين شوت حسابك</p>
+            <span>بروفايلك أو صفحة الإعدادات</span>
+            <input type="file" id="hdShotInput" accept="image/*">
+          </div>
+          <div class="hd-shotwrap" id="hdShotWrap" style="display:none">
+            <p class="hint" style="text-align:center;margin:8px 0">اسحب بإصبعك على اليوزر القديم عشان تحدده</p>
+            <canvas id="hdShotCv"></canvas>
+            <p class="lbl">محاذاة اليوزر</p>
+            <div class="chips" id="hdAlign">
+              <button class="chip" type="button" data-a="left" aria-pressed="true">يسار</button>
+              <button class="chip" type="button" data-a="center" aria-pressed="false">وسط</button>
+              <button class="chip" type="button" data-a="right" aria-pressed="false">يمين</button>
+            </div>
+            <div class="sl-row"><div class="top"><span>حجم الخط</span><output id="hdSzOut">100</output></div><input type="range" id="hdSz" min="70" max="130" value="100" aria-label="حجم الخط"></div>
+            <div class="actions">
+              <button class="btn ghost" id="hdShUndo" type="button" disabled>تراجع</button>
+              <button class="btn ghost" id="hdShClear" type="button" disabled>مسح التحديد</button>
+              <button class="btn" id="hdShDl" type="button" disabled>تنزيل المعاينة</button>
+            </div>
+          </div>
+        </div>
       </div>
       <p class="hint" style="text-align:center;margin-top:12px">الموقع مش بيقدر يعرف اليوزر متاح ولا لأ، ديسكورد مفيش وسيلة عامة تتأكد منها. جرّب اليوزر في إعدادات حسابك، ولو اتاخد ارجع هنا وعدّله.</p>
     </div>
@@ -840,6 +866,6 @@
   <a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>أسئلة</a>
 </nav>
 
-<script src="app.js?v=39" defer></script>
+<script src="app.js?v=40" defer></script>
 </body>
 </html>
